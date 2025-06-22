@@ -261,22 +261,26 @@ export function ChatInterfaceSupabase({ sessionId }: ChatInterfaceSupabaseProps)
 
       // Envoyer au webhook n8n (optionnel)
       try {
-        const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL;
-        if (webhookUrl) {
-          fetch(webhookUrl, {
+        // Appel de l'API Next.js interne qui relaie vers n8n
+        try {
+          const res = await fetch('/api/webhook/n8n', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
               sessionId,
+              userId: user?.id,
               message,
-              userId: user.id,
-              timestamp: new Date().toISOString(),
             }),
-          }).catch(error => {
-            console.error('Webhook error:', error);
           });
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`HTTP ${res.status}: ${text}`);
+          }
+        } catch (err) {
+          console.error('Webhook error:', err);
+          alert(`Erreur webhook n8n: ${err instanceof Error ? err.message : err}`);
         }
       } catch (error) {
         console.error('Failed to send webhook:', error);
@@ -288,6 +292,15 @@ export function ChatInterfaceSupabase({ sessionId }: ChatInterfaceSupabaseProps)
       setSending(false);
     }
   };
+  // Ajoutez ceci temporairement dans ChatInterfaceSupabase.tsx après le handleSendMessage
+
+  // Debug : vérifier les variables d'environnement
+  useEffect(() => {
+    console.log('Variables environnement côté client:');
+    console.log('NEXT_PUBLIC_N8N_WEBHOOK_URL:', process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL);
+    console.log('User ID:', user?.id);
+    console.log('Session ID:', sessionId);
+  }, [user, sessionId]);
 
   if (loading) {
     return (
