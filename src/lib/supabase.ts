@@ -1,11 +1,25 @@
-// src/lib/supabase.ts (version corrigée)
+// src/lib/supabase.ts (version optimisée pour WebSocket)
 import { createBrowserClient } from '@supabase/ssr'
 
 // Client pour les composants côté client uniquement
 export function createClient() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      realtime: {
+        params: {
+          eventsPerSecond: 10
+        },
+        heartbeatIntervalMs: 30000,
+        timeout: 20000
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'supabase-js-web'
+        }
+      }
+    }
   )
 }
 

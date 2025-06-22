@@ -1,4 +1,4 @@
-// src/components/auth/AuthProvider.tsx (version améliorée)
+// src/components/auth/AuthProvider.tsx (version avec gestion WebSocket améliorée)
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
@@ -30,21 +30,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const supabase = createClient()
 
-    // Récupérer l'utilisateur actuel avec gestion d'erreur
+    // Récupérer l'utilisateur actuel avec gestion d'erreur améliorée
     const getUser = async () => {
       try {
         const { data: { user }, error } = await supabase.auth.getUser()
         
-        // Ne pas traiter comme une erreur si pas de session
-        if (error && error.message !== 'Auth session missing!') {
-          console.error('Erreur auth:', error)
+        if (error) {
+          // Si l'erreur indique que l'utilisateur n'existe pas, nettoyer la session
+          if (error.message.includes('User from sub claim in JWT does not exist') || 
+              error.message.includes('Invalid JWT') ||
+              error.message.includes('JWT expired')) {
+            console.warn('Session invalide détectée, nettoyage en cours...')
+            await supabase.auth.signOut()
+            setUser(null)
+          } else if (error.message !== 'Auth session missing!') {
+            console.error('Erreur auth:', error)
+          }
+        } else {
+          setUser(user)
         }
-        
-        setUser(user)
       } catch (error: any) {
-        // Ignorer l'erreur "Auth session missing" qui est normale
-        if (error.message !== 'Auth session missing!') {
-          console.error('Erreur récupération utilisateur:', error)
+        console.error('Erreur récupération utilisateur:', error)
+        // En cas d'erreur critique, nettoyer la session
+        try {
+          await supabase.auth.signOut()
+        } catch (signOutError) {
+          console.error('Erreur lors du nettoyage de session:', signOutError)
         }
         setUser(null)
       } finally {
@@ -54,20 +65,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     getUser()
 
-    // Écouter les changements d'authentification
+    // Écouter les changements d'authentification avec gestion d'erreur WebSocket
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-
-      // Logger uniquement les événements importants
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        console.log('Auth event:', event, session?.user?.email)
+      console.log('Auth event:', event)
+      
+      try {
+        if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+          if (event === 'SIGNED_OUT') {
+            setUser(null)
+          } else if (session?.user) {
+            setUser(session.user)
+          }
+        } else if (event === 'SIGNED_IN' && session?.user) {
+          setUser(session.user)
+        }
+      } catch (error) {
+        console.error('Erreur lors du traitement de l\'événement auth:', error)
+        // Ne pas faire échouer l'app à cause d'erreurs WebSocket
       }
+      
+      setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    // Gestion des erreurs WebSocket globales
+    const handleWebSocketError = (error: any) => {
+      console.warn('Erreur WebSocket détectée:', error)
+      // Ne pas interrompre l'app à cause d'erreurs WebSocket
+    }
+
+    // Supprimer les gestionnaires d'erreur WebSocket par défaut qui peuvent être trop verbeux
+    const originalConsoleError = console.error
+    console.error = (...args) => {
+      const message = args[0]?.toString() || ''
+      
+      // Filtrer les erreurs WebSocket non critiques
+      if (message.includes('WebSocket connection') || 
+          message.includes('Failed to fetch') ||
+          message.includes('websocket')) {
+        // Logger de manière moins invasive
+        console.warn('WebSocket issue (non-critique):', ...args)
+        return
+      }
+      
+      // Logger les autres erreurs normalement
+      originalConsoleError.apply(console, args)
+    }
+
+    return () => {
+      subscription.unsubscribe()
+      // Restaurer console.error
+      console.error = originalConsoleError
+    }
   }, [])
 
   return (

@@ -1,47 +1,30 @@
 // src/app/chat/[sessionId]/page.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { Header } from '@/components/layout/Header';
-import { ChatInterface } from '@/components/chat/ChatInterface';
-import { User } from '@/types/auth';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { HeaderSupabase } from '@/components/layout/HeaderSupabase';
+import { ChatInterfaceSupabase } from '@/components/chat/ChatInterfaceSupabase';
 
 interface ChatPageProps {
-  params: {
+  params: Promise<{
     sessionId: string;
-  };
+  }>;
 }
 
 export default function ChatPage({ params }: ChatPageProps) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
   const router = useRouter();
-  const { sessionId } = params;
+  
+  // Unwrap params avec React.use()
+  const { sessionId } = use(params);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth-token');
-    if (!token) {
+    if (!loading && !user) {
       router.push('/auth/signin');
-      return;
     }
-
-    // Decode token to get user info (simplified)
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      setUser({
-        id: payload.userId,
-        email: payload.email,
-        createdAt: new Date(),
-      });
-    } catch (error) {
-      console.error('Invalid token:', error);
-      router.push('/auth/signin');
-      return;
-    }
-
-    setLoading(false);
-  }, [router]);
+  }, [user, loading, router]);
 
   if (loading) {
     return (
@@ -51,13 +34,21 @@ export default function ChatPage({ params }: ChatPageProps) {
     );
   }
 
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-500">Redirection...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header user={user} />
+      <HeaderSupabase />
       <main className="flex-1 flex flex-col">
         <div className="flex-1 max-w-7xl mx-auto w-full">
           <div className="h-[calc(100vh-4rem)] bg-white shadow-sm">
-            <ChatInterface sessionId={sessionId} />
+            <ChatInterfaceSupabase sessionId={sessionId} />
           </div>
         </div>
       </main>

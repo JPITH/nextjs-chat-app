@@ -1,9 +1,9 @@
-// src/components/auth/SignInFormSupabase.tsx
+// src/components/auth/SignInFormSupabase.tsx (version avec messages)
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from '@/lib/auth-supabase'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -14,21 +14,43 @@ export function SignInFormSupabase() {
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    // Afficher les messages basés sur les paramètres d'URL
+    const urlMessage = searchParams.get('message')
+    if (urlMessage) {
+      switch (urlMessage) {
+        case 'session-expired':
+          setMessage('Votre session a expiré. Veuillez vous reconnecter.')
+          break
+        case 'password-updated':
+          setMessage('Votre mot de passe a été mis à jour avec succès.')
+          break
+        default:
+          break
+      }
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setMessage('')
     setLoading(true)
 
     try {
-      await signIn(email, password)
+      await signIn(email, password, rememberMe)
       router.push('/dashboard')
     } catch (error: any) {
       // Gestion spécifique de l'erreur "Email not confirmed"
       if (error.message.includes('Email not confirmed')) {
         setError('Votre email n\'est pas encore confirmé. Vérifiez votre boîte mail.')
+      } else if (error.message.includes('Invalid login credentials')) {
+        setError('Email ou mot de passe incorrect.')
       } else {
         setError(error.message || 'Erreur de connexion')
       }
@@ -90,6 +112,14 @@ export function SignInFormSupabase() {
                 </div>
               </div>
 
+              {/* Messages de succès */}
+              {message && (
+                <div className="text-green-600 text-sm text-center bg-green-50 p-3 rounded-lg border border-green-200">
+                  {message}
+                </div>
+              )}
+
+              {/* Messages d'erreur */}
               {error && (
                 <div className="text-red-600 text-sm text-center">
                   {error}

@@ -1,22 +1,24 @@
 // src/app/auth/confirm-email/page.tsx
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, use } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 
 interface ConfirmEmailPageProps {
-  searchParams: {
+  searchParams: Promise<{
     email?: string
-  }
+  }>
 }
 
 export default function ConfirmEmailPage({ searchParams }: ConfirmEmailPageProps) {
   const [isResending, setIsResending] = useState(false)
   const [message, setMessage] = useState('')
-  const email = searchParams.email
+  
+  // Unwrap searchParams avec React.use()
+  const { email } = use(searchParams)
 
   const resendConfirmation = async () => {
     if (!email) return

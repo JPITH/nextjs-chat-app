@@ -1,4 +1,132 @@
-# Application Next.js Chat avec n8n et Redis
+# Next.js Chat App avec Supabase & n8n
+
+Application de chat moderne construite avec Next.js, Supabase (authentification, base de données, WebSocket temps réel), et intégration n8n pour l'IA. UI responsive avec gestion avancée des sessions, sécurité, et expérience utilisateur.
+
+---
+
+## 📁 Structure du projet (2025)
+
+```
+nextjs-chat-app/
+├── .env.local / .env.example
+├── package.json
+├── README.md
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   ├── auth/
+│   │   │   ├── signin/page.tsx
+│   │   │   ├── signup/page.tsx
+│   │   │   ├── confirm-email/page.tsx
+│   │   │   ├── reset-password/page.tsx
+│   │   ├── dashboard/page.tsx
+│   │   ├── chat/[sessionId]/page.tsx
+│   ├── components/
+│   │   ├── auth/
+│   │   │   ├── AuthProvider.tsx
+│   │   │   ├── AuthErrorBoundary.tsx
+│   │   │   ├── SignInFormSupabase.tsx
+│   │   │   ├── SignUpFormSupabase.tsx
+│   │   ├── chat/
+│   │   │   ├── ChatInterfaceSupabase.tsx
+│   │   │   ├── MessageListSupabase.tsx
+│   │   │   ├── MessageInputSupabase.tsx
+│   │   ├── layout/
+│   │   │   ├── HeaderSupabase.tsx
+│   │   │   ├── Navigation.tsx
+│   │   ├── ui/ (Button, Input, Card...)
+│   ├── lib/
+│   │   ├── supabase.ts
+│   │   ├── auth-supabase.ts
+│   │   ├── ...
+│   ├── types/
+│   └── middleware.ts
+└── ...
+```
+
+---
+
+## 🚀 Installation & Configuration
+
+### 1. Prérequis
+- Node.js 18+, pnpm
+- Compte Supabase (https://supabase.com)
+- n8n (pour l'IA, optionnel)
+
+### 2. Variables d'environnement (`.env.local`)
+
+```
+NEXT_PUBLIC_SUPABASE_URL=...   # URL de votre projet Supabase
+NEXT_PUBLIC_SUPABASE_ANON_KEY=... # Clé anonyme Supabase
+N8N_WEBHOOK_URL=...            # URL du webhook n8n
+```
+
+### 3. Setup Supabase
+- Créez les tables `profiles`, `chat_sessions`, `chat_messages` (voir `/src/lib/supabase.ts` pour les types)
+- Ajoutez la colonne `session_id` (UUID) dans `profiles`
+- Activez la Row Level Security (RLS) sur toutes les tables et définissez des policies adaptées
+- Copiez l'URL et la clé anonyme dans `.env.local`
+
+### 4. Lancer l'app
+```bash
+pnpm install
+pnpm dev
+```
+
+---
+
+## 🛡️ Sécurité
+- Authentification Supabase (email/password)
+- Gestion des sessions avec "Se souvenir de moi" (expiration configurable)
+- Confirmation d'email, reset password, gestion des erreurs
+- RLS activé sur toutes les tables (impératif !)
+- Nettoyage automatique des sessions corrompues
+
+---
+
+## 💬 Fonctionnalités actuelles
+- Inscription, connexion, confirmation d'email, reset password
+- Dashboard avec liste des sessions de chat (par utilisateur)
+- Interface de chat temps réel (WebSocket Supabase)
+- Historique des messages par session
+- Envoi de messages à un webhook n8n pour traitement IA (réponse automatique)
+- UI moderne (Tailwind, composants custom, messages d'erreur/succès)
+- Gestion "Se souvenir de moi" (session longue ou courte)
+- Gestion automatique de la déconnexion si session expirée ou corrompue
+- Gestion des erreurs globales (AuthErrorBoundary)
+
+---
+
+## 🔌 Endpoints principaux
+- `/auth/signin` / `/auth/signup` / `/auth/confirm-email` / `/auth/reset-password`
+- `/dashboard` : liste des chats
+- `/chat/[sessionId]` : chat temps réel
+- Webhook n8n : appelé côté serveur pour chaque message utilisateur
+
+---
+
+## 🔮 Fonctionnalités futures suggérées
+- Authentification OAuth (Google, GitHub...)
+- Upload et partage de fichiers dans le chat
+- Notifications push (PWA)
+- Système de rôles/admin (gestion utilisateurs)
+- Recherche dans l'historique des chats
+- Thème sombre/clair dynamique
+- Statistiques d'utilisation (nombre de messages, sessions, etc.)
+- Support mobile natif (React Native)
+- Monitoring intégré (logs, dashboard admin)
+- Tests E2E automatisés
+
+---
+
+## 📝 Notes
+- Redis et JWT custom ne sont plus nécessaires (tout passe par Supabase)
+- L'intégration n8n est optionnelle mais recommandée pour l'IA
+- Pensez à bien sécuriser vos policies RLS et vos variables d'environnement
+- Voir les fichiers `/src/lib/supabase.ts` et `/src/lib/auth-supabase.ts` pour la logique d'auth/session
+- Pour le déploiement : Vercel, Docker ou autre (voir section dédiée)
+
 
 ## 📁 Structure du projet
 

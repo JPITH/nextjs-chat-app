@@ -1,7 +1,8 @@
-// src/app/layout.tsx (version Supabase)
+// src/app/layout.tsx (version avec gestion d'erreur)
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { AuthProvider } from '@/components/auth/AuthProvider'
+import { AuthErrorBoundary } from '@/components/auth/AuthErrorBoundary'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -20,9 +21,11 @@ export default function RootLayout({
     <html lang="fr" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <AuthProvider>
-          <div className="min-h-screen bg-gray-50">
-            {children}
-          </div>
+          <AuthErrorBoundary>
+            <div className="min-h-screen bg-gray-50">
+              {children}
+            </div>
+          </AuthErrorBoundary>
         </AuthProvider>
       </body>
     </html>

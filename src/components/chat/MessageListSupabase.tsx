@@ -1,20 +1,33 @@
-// src/components/chat/MessageList.tsx
+// src/components/chat/MessageListSupabase.tsx
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { Message } from '@/types/chat';
-import { formatDate } from '@/lib/utils';
 
-interface MessageListProps {
+interface Message {
+  id: string;
+  content: string;
+  sender: 'user' | 'assistant';
+  timestamp: string;
+  session_id: string;
+}
+
+interface MessageListSupabaseProps {
   messages: Message[];
 }
 
-export function MessageList({ messages }: MessageListProps) {
+export default function MessageListSupabase({ messages }: MessageListSupabaseProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const formatDate = (timestamp: string) => {
+    return new Intl.DateTimeFormat('fr-FR', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    }).format(new Date(timestamp));
+  };
 
   if (messages.length === 0) {
     return (

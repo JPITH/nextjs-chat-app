@@ -1,15 +1,15 @@
-// src/components/chat/MessageInput.tsx
+// src/components/chat/MessageInputSupabase.tsx
 'use client';
 
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 
-interface MessageInputProps {
+interface MessageInputSupabaseProps {
   onSendMessage: (message: string) => void;
   disabled?: boolean;
 }
 
-export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
+export default function MessageInputSupabase({ onSendMessage, disabled }: MessageInputSupabaseProps) {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -62,7 +62,7 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
           disabled={!message.trim() || disabled}
           className="px-6"
         >
-          Envoyer
+          {disabled ? 'Envoi...' : 'Envoyer'}
         </Button>
       </form>
     </div>
