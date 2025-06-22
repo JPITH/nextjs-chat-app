@@ -1,10 +1,7 @@
-// src/lib/supabase.ts (version moderne)
+// src/lib/supabase.ts (version corrigée)
 import { createBrowserClient } from '@supabase/ssr'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { type CookieOptions } from '@supabase/ssr'
 
-// Client pour les composants côté client
+// Client pour les composants côté client uniquement
 export function createClient() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,65 +9,8 @@ export function createClient() {
   )
 }
 
-// Client pour les composants côté serveur
-export async function createServerComponentClient() {
-  const cookieStore = await cookies()
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-      },
-    }
-  )
-}
-
-// Client pour les route handlers
-export function createRouteHandlerClient(request: Request) {
-  const requestHeaders = new Headers(request.headers)
-  
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          const cookies = requestHeaders.get('cookie')
-          return cookies ? cookies.split(';').map(cookie => {
-            const [name, ...rest] = cookie.trim().split('=')
-            return { name, value: rest.join('=') }
-          }) : []
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            const cookieValue = `${name}=${value}; Path=${options?.path || '/'}; ${
-              options?.httpOnly ? 'HttpOnly; ' : ''
-            }${options?.secure ? 'Secure; ' : ''}${
-              options?.sameSite ? `SameSite=${options.sameSite}; ` : ''
-            }${options?.maxAge ? `Max-Age=${options.maxAge}; ` : ''}`
-            
-            requestHeaders.set('set-cookie', cookieValue)
-          })
-        },
-      },
-    }
-  )
-}
+// Instance client par défaut pour l'export legacy
+export const supabase = createClient()
 
 // Types pour TypeScript
 export type Database = {
@@ -81,6 +21,7 @@ export type Database = {
           id: string
           email: string
           name: string | null
+          session_id: string | null
           created_at: string
           updated_at: string
         }
@@ -88,6 +29,7 @@ export type Database = {
           id: string
           email: string
           name?: string | null
+          session_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -95,7 +37,56 @@ export type Database = {
           id?: string
           email?: string
           name?: string | null
+          session_id?: string | null
           updated_at?: string
+        }
+      }
+      chat_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          created_at: string
+          updated_at: string
+          message_count: number
+        }
+        Insert: {
+          id: string
+          user_id: string
+          title: string
+          created_at?: string
+          updated_at?: string
+          message_count?: number
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          updated_at?: string
+          message_count?: number
+        }
+      }
+      chat_messages: {
+        Row: {
+          id: string
+          session_id: string
+          content: string
+          sender: 'user' | 'assistant'
+          timestamp: string
+        }
+        Insert: {
+          id: string
+          session_id: string
+          content: string
+          sender: 'user' | 'assistant'
+          timestamp?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          content?: string
+          sender?: 'user' | 'assistant'
+          timestamp?: string
         }
       }
     }
