@@ -1,4 +1,4 @@
-// src/components/auth/AuthProvider.tsx (version moderne)
+// src/components/auth/AuthProvider.tsx (version améliorée)
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
@@ -30,16 +30,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const supabase = createClient()
 
-    // Récupérer l'utilisateur actuel
+    // Récupérer l'utilisateur actuel avec gestion d'erreur
     const getUser = async () => {
       try {
         const { data: { user }, error } = await supabase.auth.getUser()
-        if (error) {
+        
+        // Ne pas traiter comme une erreur si pas de session
+        if (error && error.message !== 'Auth session missing!') {
           console.error('Erreur auth:', error)
         }
+        
         setUser(user)
-      } catch (error) {
-        console.error('Erreur récupération utilisateur:', error)
+      } catch (error: any) {
+        // Ignorer l'erreur "Auth session missing" qui est normale
+        if (error.message !== 'Auth session missing!') {
+          console.error('Erreur récupération utilisateur:', error)
+        }
+        setUser(null)
       } finally {
         setLoading(false)
       }
@@ -54,8 +61,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null)
       setLoading(false)
 
-      // Optionnel: logger les événements d'auth
-      console.log('Auth event:', event, session?.user?.email)
+      // Logger uniquement les événements importants
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        console.log('Auth event:', event, session?.user?.email)
+      }
     })
 
     return () => subscription.unsubscribe()

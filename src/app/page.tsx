@@ -1,14 +1,14 @@
-// src/app/page.tsx
+// src/app/page.tsx (version corrigée)
 import React from 'react';
 import Link from 'next/link';
-import { Header } from '@/components/layout/Header';
+import { HeaderSimple } from '@/components/layout/HeaderSimple';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <Header />
+      <HeaderSimple />
       
       {/* Hero Section */}
       <section className="relative overflow-hidden">
@@ -21,7 +21,7 @@ export default function HomePage() {
               </span>
             </h1>
             <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
-              Une expérience de chat révolutionnaire powered by n8n et Redis. 
+              Une expérience de chat révolutionnaire powered by n8n et Supabase. 
               Conversations intelligentes, réponses instantanées, interface moderne.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -85,7 +85,7 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">
-                  Mises à jour instantanées avec Server-Sent Events pour une expérience fluide et réactive
+                  Mises à jour instantanées avec Supabase Realtime pour une expérience fluide et réactive
                 </p>
               </CardContent>
             </Card>
@@ -101,7 +101,7 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">
-                  Authentification JWT robuste et stockage sécurisé de vos données avec Redis
+                  Authentification robuste et stockage sécurisé de vos données avec Supabase
                 </p>
               </CardContent>
             </Card>
@@ -132,7 +132,7 @@ export default function HomePage() {
           <div className="text-center">
             <h3 className="text-2xl font-bold mb-4">ChatApp</h3>
             <p className="text-gray-400 mb-8">
-              Powered by Next.js, n8n, Redis et beaucoup d'amour ❤️
+              Powered by Next.js, n8n, Supabase et beaucoup d'amour ❤️
             </p>
             <div className="flex justify-center space-x-6 text-sm text-gray-400">
               <span>© 2024 ChatApp. Tous droits réservés.</span>
