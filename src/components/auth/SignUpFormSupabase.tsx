@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { signUp } from '@/lib/auth-supabase'
 import { Button } from '@/components/ui/Button'
@@ -44,7 +45,8 @@ export function SignUpFormSupabase() {
 
     try {
       await signUp(formData.email, formData.password, formData.name)
-      router.push('/dashboard')
+      // Rediriger vers la page de confirmation d'email
+      router.push(`/auth/confirm-email?email=${encodeURIComponent(formData.email)}`)
     } catch (error: any) {
       setError(error.message || 'Erreur lors de l\'inscription')
     } finally {
@@ -112,6 +114,17 @@ export function SignUpFormSupabase() {
               >
                 {loading ? 'Inscription...' : 'S\'inscrire'}
               </Button>
+
+              {/* Lien vers la connexion */}
+              <div className="text-center text-sm text-gray-600">
+                Vous avez déjà un compte ?{' '}
+                <Link 
+                  href="/auth/signin" 
+                  className="text-blue-600 hover:text-blue-800 underline font-medium"
+                >
+                  Se connecter
+                </Link>
+              </div>
             </form>
           </CardContent>
         </Card>
