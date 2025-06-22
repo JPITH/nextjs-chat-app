@@ -209,89 +209,162 @@ export function ChatInterfaceSupabase({ sessionId }: ChatInterfaceSupabaseProps)
     };
   }, [sessionId, user, supabase, fetchMessages]);
 
-  const handleSendMessage = async (message: string) => {
-    if (!user || !session) return;
+  // src/components/chat/ChatInterfaceSupabase.tsx - Gestion des réponses n8n
 
-    setSending(true);
+const handleSendMessage = async (message: string) => {
+  if (!user || !session) return;
+
+  setSending(true);
+  try {
+    // Créer le message utilisateur
+    const userMessage: Omit<Message, 'id'> = {
+      content: message,
+      sender: 'user',
+      timestamp: new Date().toISOString(),
+      session_id: sessionId,
+    };
+
+    // Sauvegarder le message en base
+    const { data: savedMessage, error: messageError } = await supabase
+      .from('chat_messages')
+      .insert(userMessage)
+      .select()
+      .single();
+
+    if (messageError) {
+      console.error('Erreur sauvegarde message:', messageError);
+      return;
+    }
+
+    // Si WebSocket ne fonctionne pas, ajouter le message manuellement
+    if (wsStatus !== 'connected') {
+      setMessages(prev => [...prev, savedMessage]);
+    }
+
+    // Mettre à jour le compteur de messages de la session
+    const { error: updateError } = await supabase
+      .from('chat_sessions')
+      .update({
+        message_count: session.message_count + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', sessionId);
+
+    if (updateError) {
+      console.error('Erreur mise à jour session:', updateError);
+    } else {
+      setSession(prev => prev ? {
+        ...prev,
+        message_count: prev.message_count + 1,
+        updated_at: new Date().toISOString()
+      } : null);
+    }
+
+    // ============ WEBHOOK N8N AVEC TRAITEMENT DE LA RÉPONSE ============
     try {
-      // Créer le message utilisateur
-      const userMessage: Omit<Message, 'id'> = {
-        content: message,
-        sender: 'user',
-        timestamp: new Date().toISOString(),
-        session_id: sessionId,
-      };
+      console.log('Envoi webhook n8n...');
+      
+      const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL;
+      const username = process.env.NEXT_PUBLIC_N8N_WEBHOOK_USER || 'admin';
+      const password = process.env.NEXT_PUBLIC_N8N_WEBHOOK_PASSWORD || 'v7Efb2!h@A6RxP';
 
-      // Sauvegarder le message en base
-      const { data: savedMessage, error: messageError } = await supabase
-        .from('chat_messages')
-        .insert(userMessage)
-        .select()
-        .single();
-
-      if (messageError) {
-        console.error('Erreur sauvegarde message:', messageError);
+      if (!webhookUrl) {
+        console.warn('URL webhook n8n non configurée');
         return;
       }
 
-      // Si WebSocket ne fonctionne pas, ajouter le message manuellement
-      if (wsStatus !== 'connected') {
-        setMessages(prev => [...prev, savedMessage]);
+      const basicAuth = 'Basic ' + btoa(`${username}:${password}`);
+
+      const webhookPayload = {
+        sessionId,
+        userId: user.id,
+        message,
+        timestamp: new Date().toISOString(),
+      };
+
+      console.log('Payload webhook:', webhookPayload);
+
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': basicAuth,
+          'Origin': window.location.origin,
+        },
+        body: JSON.stringify(webhookPayload),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Erreur webhook n8n:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        return;
       }
 
-      // Mettre à jour le compteur de messages de la session
-      const { error: updateError } = await supabase
-        .from('chat_sessions')
-        .update({
-          message_count: session.message_count + 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', sessionId);
+      const result = await response.json();
+      console.log('Réponse webhook n8n:', result);
 
-      if (updateError) {
-        console.error('Erreur mise à jour session:', updateError);
-      } else {
-        // Mettre à jour le state local de la session
-        setSession(prev => prev ? {
-          ...prev,
-          message_count: prev.message_count + 1,
-          updated_at: new Date().toISOString()
-        } : null);
-      }
+      // ========== TRAITEMENT DE LA RÉPONSE N8N ==========
+      if (result.response) {
+        // Créer le message de l'assistant
+        const assistantMessage: Omit<Message, 'id'> = {
+          content: result.response,
+          sender: 'assistant',
+          timestamp: new Date().toISOString(),
+          session_id: sessionId,
+        };
 
-      // Envoyer au webhook n8n (optionnel)
-      try {
-        // Appel de l'API Next.js interne qui relaie vers n8n
-        try {
-          const res = await fetch('/api/webhook/n8n', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              sessionId,
-              userId: user?.id,
-              message,
-            }),
-          });
-          if (!res.ok) {
-            const text = await res.text();
-            throw new Error(`HTTP ${res.status}: ${text}`);
+        // Sauvegarder la réponse en base
+        const { data: savedAssistantMessage, error: assistantError } = await supabase
+          .from('chat_messages')
+          .insert(assistantMessage)
+          .select()
+          .single();
+
+        if (assistantError) {
+          console.error('Erreur sauvegarde réponse assistant:', assistantError);
+        } else {
+          console.log('Réponse assistant sauvegardée:', savedAssistantMessage);
+          
+          // Si WebSocket ne fonctionne pas, ajouter le message manuellement
+          if (wsStatus !== 'connected') {
+            setMessages(prev => [...prev, savedAssistantMessage]);
           }
-        } catch (err) {
-          console.error('Webhook error:', err);
-          alert(`Erreur webhook n8n: ${err instanceof Error ? err.message : err}`);
+
+          // Mettre à jour le compteur de messages
+          const { error: updateCountError } = await supabase
+            .from('chat_sessions')
+            .update({
+              message_count: session.message_count + 2, // +1 user + 1 assistant
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', sessionId);
+
+          if (updateCountError) {
+            console.error('Erreur mise à jour compteur:', updateCountError);
+          } else {
+            setSession(prev => prev ? {
+              ...prev,
+              message_count: prev.message_count + 2,
+              updated_at: new Date().toISOString()
+            } : null);
+          }
         }
-      } catch (error) {
-        console.error('Failed to send webhook:', error);
       }
 
-    } catch (error) {
-      console.error('Error sending message:', error);
-    } finally {
-      setSending(false);
+    } catch (webhookError) {
+      console.error('Erreur webhook n8n:', webhookError);
     }
-  };
+
+  } catch (error) {
+    console.error('Error sending message:', error);
+  } finally {
+    setSending(false);
+  }
+};
   // Ajoutez ceci temporairement dans ChatInterfaceSupabase.tsx après le handleSendMessage
 
   // Debug : vérifier les variables d'environnement

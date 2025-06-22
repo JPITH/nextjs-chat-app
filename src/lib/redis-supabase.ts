@@ -1,131 +1,265 @@
-// src/lib/redis-supabase.ts (utilisation du wrapper Redis Supabase)
-import { supabase } from './supabase'
-import { Message, ChatSession } from '@/types/chat'
+// src/lib/redis-supabase.ts - Intégration Redis Wrapper
+import { createClient } from './supabase'
 
-class SupabaseRedisClient {
+export class SupabaseRedisManager {
+  private supabase = createClient()
   private wrapperName = 'chats' // Nom de votre wrapper Redis
 
-  // Messages operations
-  async saveMessage(message: Message): Promise<void> {
-    const key = `session:${message.sessionId}:messages`
-    
-    await supabase.rpc('redis_lpush', {
-      wrapper_name: this.wrapperName,
-      key: key,
-      value: JSON.stringify({
-        id: message.id,
-        content: message.content,
-        sender: message.sender,
-        timestamp: message.timestamp.toISOString(),
-        sessionId: message.sessionId,
-      })
-    })
+  // ================ GESTION DES MESSAGES CHAT ================
+  
+  /**
+   * Sauvegarder un message dans Redis ET Supabase
+   */
+  async saveMessage(message: {
+    id: string
+    session_id: string
+    content: string
+    sender: 'user' | 'assistant'
+    timestamp: string
+  }) {
+    try {
+      // 1. Sauvegarder en Supabase (base principale)
+      const { error: supabaseError } = await this.supabase
+        .from('chat_messages')
+        .insert(message)
 
-    // Incrémenter le compteur de messages
-    await supabase.rpc('redis_hincrby', {
-      wrapper_name: this.wrapperName,
-      key: `session:${message.sessionId}`,
-      field: 'messageCount',
-      increment: 1
-    })
+      if (supabaseError) {
+        console.error('Erreur Supabase:', supabaseError)
+        throw supabaseError
+      }
 
-    // Mettre à jour la date de modification
-    await supabase.rpc('redis_hset', {
-      wrapper_name: this.wrapperName,
-      key: `session:${message.sessionId}`,
-      field: 'updatedAt',
-      value: new Date().toISOString()
-    })
+      // 2. Sauvegarder en Redis (pour la mémoire IA et performance)
+      const redisKey = `session:${message.session_id}:messages`
+      
+      // Ajouter le message à la liste Redis
+      const { error: redisError } = await this.supabase
+        .rpc('redis_lpush', {
+          wrapper_name: this.wrapperName,
+          key: redisKey,
+          value: JSON.stringify({
+            id: message.id,
+            content: message.content,
+            sender: message.sender,
+            timestamp: message.timestamp,
+            session_id: message.session_id
+          })
+        })
+
+      if (redisError) {
+        console.warn('Erreur Redis (non critique):', redisError)
+      }
+
+      // 3. Mettre à jour les métadonnées de session en Redis
+      await this.updateSessionMetadata(message.session_id)
+
+      return { success: true }
+    } catch (error) {
+      console.error('Erreur saveMessage:', error)
+      throw error
+    }
   }
 
-  async getSessionMessages(sessionId: string): Promise<Message[]> {
-    const { data, error } = await supabase.rpc('redis_lrange', {
-      wrapper_name: this.wrapperName,
-      key: `session:${sessionId}:messages`,
-      start: 0,
-      stop: -1
-    })
+  /**
+   * Récupérer l'historique des messages depuis Redis (pour l'IA)
+   */
+  async getMessagesForAI(sessionId: string, limit: number = 20): Promise<any[]> {
+    try {
+      const redisKey = `session:${sessionId}:messages`
+      
+      const { data, error } = await this.supabase
+        .rpc('redis_lrange', {
+          wrapper_name: this.wrapperName,
+          key: redisKey,
+          start: 0,
+          stop: limit - 1
+        })
+
+      if (error) {
+        console.warn('Erreur Redis, fallback Supabase:', error)
+        return await this.getMessagesFromSupabase(sessionId, limit)
+      }
+
+      return (data || [])
+        .map((item: string) => {
+          try {
+            return JSON.parse(item)
+          } catch {
+            return null
+          }
+        })
+        .filter(Boolean)
+        .reverse() // Ordre chronologique
+
+    } catch (error) {
+      console.error('Erreur getMessagesForAI:', error)
+      // Fallback sur Supabase
+      return await this.getMessagesFromSupabase(sessionId, limit)
+    }
+  }
+
+  /**
+   * Fallback : récupérer depuis Supabase
+   */
+  private async getMessagesFromSupabase(sessionId: string, limit: number = 20) {
+    const { data, error } = await this.supabase
+      .from('chat_messages')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('timestamp', { ascending: false })
+      .limit(limit)
 
     if (error) throw error
+    return (data || []).reverse()
+  }
 
-    return (data || [])
-      .map((item: string) => {
-        try {
-          const parsed = JSON.parse(item)
-          return {
-            id: parsed.id,
-            content: parsed.content,
-            sender: parsed.sender,
-            timestamp: new Date(parsed.timestamp),
-            sessionId: parsed.sessionId,
+  /**
+   * Mettre à jour les métadonnées de session
+   */
+  private async updateSessionMetadata(sessionId: string) {
+    try {
+      const metadataKey = `session:${sessionId}:metadata`
+      
+      await this.supabase
+        .rpc('redis_hset_multiple', {
+          wrapper_name: this.wrapperName,
+          key: metadataKey,
+          fields: {
+            last_activity: new Date().toISOString(),
+            message_count_redis: '1' // Sera incrémenté
           }
-        } catch (error) {
-          console.error('Failed to parse message:', error)
-          return null
-        }
-      })
-      .filter((msg): msg is Message => msg !== null)
-      .reverse() // Chronologique
+        })
+
+      // Incrémenter le compteur
+      await this.supabase
+        .rpc('redis_hincrby', {
+          wrapper_name: this.wrapperName,
+          key: metadataKey,
+          field: 'message_count_redis',
+          increment: 1
+        })
+
+    } catch (error) {
+      console.warn('Erreur mise à jour métadonnées Redis:', error)
+    }
   }
 
-  // Chat session operations
-  async createChatSession(session: ChatSession): Promise<void> {
-    // Sauvegarder les données de session
-    await supabase.rpc('redis_hset_multiple', {
-      wrapper_name: this.wrapperName,
-      key: `session:${session.id}`,
-      fields: {
-        id: session.id,
-        userId: session.userId,
-        title: session.title,
-        createdAt: session.createdAt.toISOString(),
-        updatedAt: session.updatedAt.toISOString(),
-        messageCount: session.messageCount.toString(),
+  // ================ GESTION DE LA MÉMOIRE IA ================
+
+  /**
+   * Sauvegarder le contexte IA dans Redis
+   */
+  async saveAIContext(sessionId: string, context: {
+    summary?: string
+    user_preferences?: Record<string, any>
+    conversation_state?: string
+    topics?: string[]
+  }) {
+    try {
+      const contextKey = `session:${sessionId}:ai_context`
+      
+      const { error } = await this.supabase
+        .rpc('redis_hset_multiple', {
+          wrapper_name: this.wrapperName,
+          key: contextKey,
+          fields: {
+            summary: context.summary || '',
+            user_preferences: JSON.stringify(context.user_preferences || {}),
+            conversation_state: context.conversation_state || '',
+            topics: JSON.stringify(context.topics || []),
+            updated_at: new Date().toISOString()
+          }
+        })
+
+      if (error) {
+        console.error('Erreur sauvegarde contexte IA:', error)
       }
-    })
 
-    // Ajouter à la liste des sessions utilisateur
-    await supabase.rpc('redis_sadd', {
-      wrapper_name: this.wrapperName,
-      key: `user:${session.userId}:sessions`,
-      member: session.id
-    })
-  }
-
-  async getChatSession(sessionId: string): Promise<ChatSession | null> {
-    const { data, error } = await supabase.rpc('redis_hgetall', {
-      wrapper_name: this.wrapperName,
-      key: `session:${sessionId}`
-    })
-
-    if (error || !data || !data.id) return null
-
-    return {
-      id: data.id,
-      userId: data.userId,
-      title: data.title,
-      createdAt: new Date(data.createdAt),
-      updatedAt: new Date(data.updatedAt),
-      messageCount: parseInt(data.messageCount || '0'),
+    } catch (error) {
+      console.error('Erreur saveAIContext:', error)
     }
   }
 
-  async getUserSessions(userId: string): Promise<ChatSession[]> {
-    const { data: sessionIds, error } = await supabase.rpc('redis_smembers', {
-      wrapper_name: this.wrapperName,
-      key: `user:${userId}:sessions`
-    })
+  /**
+   * Récupérer le contexte IA depuis Redis
+   */
+  async getAIContext(sessionId: string) {
+    try {
+      const contextKey = `session:${sessionId}:ai_context`
+      
+      const { data, error } = await this.supabase
+        .rpc('redis_hgetall', {
+          wrapper_name: this.wrapperName,
+          key: contextKey
+        })
 
-    if (error || !sessionIds) return []
+      if (error || !data) {
+        return null
+      }
 
-    const sessions: ChatSession[] = []
-    for (const sessionId of sessionIds) {
-      const session = await this.getChatSession(sessionId)
-      if (session) sessions.push(session)
+      return {
+        summary: data.summary || '',
+        user_preferences: data.user_preferences ? JSON.parse(data.user_preferences) : {},
+        conversation_state: data.conversation_state || '',
+        topics: data.topics ? JSON.parse(data.topics) : [],
+        updated_at: data.updated_at
+      }
+
+    } catch (error) {
+      console.error('Erreur getAIContext:', error)
+      return null
     }
+  }
 
-    return sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+  // ================ SYNCHRONISATION ================
+
+  /**
+   * Synchroniser Redis avec Supabase (à exécuter périodiquement)
+   */
+  async syncRedisWithSupabase(sessionId: string) {
+    try {
+      // 1. Récupérer les messages récents de Supabase
+      const { data: recentMessages, error } = await this.supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('timestamp', { ascending: false })
+        .limit(50)
+
+      if (error) throw error
+
+      // 2. Nettoyer et repeupler Redis
+      const redisKey = `session:${sessionId}:messages`
+      
+      // Supprimer l'ancienne liste
+      await this.supabase
+        .rpc('redis_del', {
+          wrapper_name: this.wrapperName,
+          key: redisKey
+        })
+
+      // Ajouter les messages dans l'ordre chronologique
+      for (const message of (recentMessages || []).reverse()) {
+        await this.supabase
+          .rpc('redis_lpush', {
+            wrapper_name: this.wrapperName,
+            key: redisKey,
+            value: JSON.stringify({
+              id: message.id,
+              content: message.content,
+              sender: message.sender,
+              timestamp: message.timestamp,
+              session_id: message.session_id
+            })
+          })
+      }
+
+      console.log(`Synchronisation Redis terminée pour session ${sessionId}`)
+
+    } catch (error) {
+      console.error('Erreur synchronisation:', error)
+    }
   }
 }
 
-export const redisSupabase = new SupabaseRedisClient()
+// Instance exportée
+export const redisManager = new SupabaseRedisManager()
