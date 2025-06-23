@@ -1,10 +1,11 @@
-// src/app/dashboard/page.tsx - Version mise à jour
+// src/app/dashboard/page.tsx - Version avec système de debug intégré
 'use client'
 
 import React from 'react'
 import { useAuth } from '@/components/auth/AuthProvider'
 import { HeaderSupabase } from '@/components/layout/HeaderSupabase'
 import { BooksListSupabase } from '@/components/dashboard/BooksListSupabase'
+import { DebugPanel } from '@/components/dashboard/DebugPanel'
 
 export default function DashboardPage() {
   const { user, loading } = useAuth()
@@ -72,6 +73,9 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
+
+      {/* Panneau de debug flottant (en développement seulement) */}
+      {process.env.NODE_ENV === 'development' && <DebugPanel />}
     </div>
   )
 }

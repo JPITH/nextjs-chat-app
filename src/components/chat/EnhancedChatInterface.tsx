@@ -1,10 +1,10 @@
-// 1. Corriger src/components/chat/EnhancedChatInterface.tsx
+// src/components/chat/EnhancedChatInterface.tsx - Version avec polling de secours
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { createClient } from '@/lib/supabase';
+import { createClient, checkRealtimeStatus } from '@/lib/supabase';
 import MessageListSupabase from '@/components/chat/MessageListSupabase';
 import MessageInputSupabase from '@/components/chat/MessageInputSupabase';
 import { Button } from '@/components/ui/Button';
@@ -50,13 +50,18 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
   });
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
+  const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'polling'>('disconnected');
   const [showStats, setShowStats] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
+  const [lastMessageCount, setLastMessageCount] = useState(0);
+  const [waitingForAI, setWaitingForAI] = useState(false);
   
   const { user } = useAuth();
   const router = useRouter();
   const supabase = createClient();
   const channelRef = useRef<any>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastFetchTimeRef = useRef<Date>(new Date());
 
   // Calculer les statistiques en temps réel
   const calculateStats = useCallback((messages: Message[]) => {
@@ -105,10 +110,15 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
     }
   }, [bookId, user, router, supabase]);
 
-  const fetchMessages = useCallback(async () => {
+  const fetchMessages = useCallback(async (updateLastFetch: boolean = true) => {
     if (!user) return;
 
     try {
+      // Ne récupérer que les messages plus récents si on fait du polling
+      const timeFilter = updateLastFetch ? {} : {
+        created_at: { gte: lastFetchTimeRef.current.toISOString() }
+      };
+
       const { data: messagesData, error: messagesError } = await supabase
         .from('book_chat')
         .select('*')
@@ -121,39 +131,101 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
       }
 
       const msgs = messagesData || [];
+      
+      // Vérifier s'il y a de nouveaux messages
+      if (msgs.length > lastMessageCount) {
+        console.log(`📨 Nouveaux messages détectés: ${msgs.length - lastMessageCount}`);
+        setLastMessageCount(msgs.length);
+        
+        // Si on attendait une réponse IA et qu'on a un nouveau message d'assistant
+        if (waitingForAI) {
+          const newAssistantMessages = msgs.filter(m => 
+            m.title?.toLowerCase().includes('assistant') && 
+            new Date(m.created_at) > lastFetchTimeRef.current
+          );
+          
+          if (newAssistantMessages.length > 0) {
+            console.log('🤖 Réponse IA reçue !');
+            setWaitingForAI(false);
+          }
+        }
+      }
+
       setMessages(msgs);
       setStats(calculateStats(msgs));
+      
+      if (updateLastFetch) {
+        lastFetchTimeRef.current = new Date();
+      }
     } catch (error: unknown) {
       console.error('Unexpected error in fetchMessages:', error);
     } finally {
-      setLoading(false);
+      if (updateLastFetch) {
+        setLoading(false);
+      }
     }
-  }, [bookId, user, supabase, calculateStats]);
+  }, [bookId, user, supabase, calculateStats, lastMessageCount, waitingForAI]);
+
+  // Polling de secours pour récupérer les nouveaux messages
+  const startPolling = useCallback(() => {
+    console.log('🔄 Démarrage du polling de secours');
+    setWsStatus('polling');
+    
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    
+    pollingIntervalRef.current = setInterval(() => {
+      fetchMessages(false); // Sans mettre à jour lastFetchTime
+    }, 3000); // Polling toutes les 3 secondes
+  }, [fetchMessages]);
+
+  const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     fetchBook();
     fetchMessages();
+    setLastMessageCount(0);
   }, [fetchBook, fetchMessages]);
 
-  // Configuration du temps réel
+  // Configuration du WebSocket avec fallback polling
   useEffect(() => {
     if (!user || !bookId) return;
 
-    let timeoutId: NodeJS.Timeout;
-    let retryCount = 0;
-    const maxRetries = 3;
+    let isSubscribed = true;
 
-    const setupRealtimeSubscription = () => {
+    const setupConnection = async () => {
+      console.log('🔗 Test de la connexion Realtime...');
+      
+      // Tester d'abord si Realtime est disponible
+      const realtimeAvailable = await checkRealtimeStatus();
+      
+      if (!realtimeAvailable) {
+        console.warn('⚠️ Realtime non disponible, passage en mode polling');
+        startPolling();
+        return;
+      }
+
+      // Si Realtime est disponible, configurer WebSocket
       try {
         setWsStatus('connecting');
         
         if (channelRef.current) {
-          supabase.removeChannel(channelRef.current);
+          await supabase.removeChannel(channelRef.current);
           channelRef.current = null;
         }
 
         const channel = supabase
-          .channel(`book_messages_${bookId}`)
+          .channel(`book_messages_${bookId}`, {
+            config: {
+              presence: { key: user.id }
+            }
+          })
           .on(
             'postgres_changes',
             {
@@ -163,46 +235,65 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
               filter: `book_id=eq.${bookId}`,
             },
             (payload) => {
-              console.log('Message reçu via WebSocket:', payload);
+              if (!isSubscribed) return;
+              
+              console.log('📨 Message reçu via WebSocket:', payload);
               const newMessage = payload.new as Message;
+              
               setMessages((prev) => {
                 if (prev.some(msg => msg.id === newMessage.id)) {
                   return prev;
                 }
                 const updated = [...prev, newMessage];
                 setStats(calculateStats(updated));
+                
+                // Si c'est une réponse d'assistant, arrêter l'attente
+                if (newMessage.title?.toLowerCase().includes('assistant')) {
+                  setWaitingForAI(false);
+                }
+                
                 return updated;
               });
             }
           )
           .subscribe((status) => {
-            console.log('WebSocket status:', status);
+            if (!isSubscribed) return;
+            
+            console.log('🔌 WebSocket status:', status);
+            
             if (status === 'SUBSCRIBED') {
               setWsStatus('connected');
-              retryCount = 0;
-            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              stopPolling(); // Arrêter le polling si WebSocket fonctionne
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+              console.warn('⚠️ WebSocket failed, falling back to polling');
               setWsStatus('disconnected');
-              
-              if (retryCount < maxRetries) {
-                retryCount++;
-                timeoutId = setTimeout(() => {
-                  setupRealtimeSubscription();
-                }, 2000 * retryCount);
-              }
+              startPolling(); // Fallback vers polling
             }
           });
 
         channelRef.current = channel;
+        
+        // Timeout de sécurité pour passer en polling si WebSocket ne fonctionne pas
+        setTimeout(() => {
+          if (isSubscribed && wsStatus !== 'connected') {
+            console.warn('⏰ WebSocket timeout, passage en polling');
+            startPolling();
+          }
+        }, 10000);
+
       } catch (error) {
-        console.error('Erreur configuration WebSocket:', error);
+        console.error('❌ Erreur configuration WebSocket:', error);
         setWsStatus('disconnected');
+        startPolling();
       }
     };
 
-    setupRealtimeSubscription();
+    setupConnection();
 
     return () => {
-      if (timeoutId) clearTimeout(timeoutId);
+      isSubscribed = false;
+      stopPolling();
+      
       if (channelRef.current) {
         try {
           supabase.removeChannel(channelRef.current);
@@ -212,14 +303,16 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
         channelRef.current = null;
       }
     };
-  }, [bookId, user, supabase, calculateStats]);
+  }, [bookId, user, supabase, calculateStats, startPolling, stopPolling, wsStatus]);
 
   const handleSendMessage = async (message: string) => {
     if (!user || !message.trim()) return;
 
     setSending(true);
+    setWaitingForAI(true); // Commencer à attendre une réponse IA
+    
     try {
-      console.log('Envoi du message:', message);
+      console.log('🚀 Envoi message:', message);
       
       // 1. Sauvegarder le message utilisateur
       const userMessage = {
@@ -235,23 +328,23 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
         .single();
 
       if (messageError) {
-        console.error('Erreur sauvegarde message:', messageError);
+        console.error('❌ Erreur sauvegarde message:', messageError);
+        setWaitingForAI(false);
         alert('Erreur lors de la sauvegarde du message');
         return;
       }
 
-      console.log('Message sauvegardé:', savedMessage);
+      console.log('✅ Message sauvegardé:', savedMessage.id);
 
-      // Mettre à jour immédiatement l'interface si WebSocket ne fonctionne pas
-      if (wsStatus !== 'connected') {
-        const updated = [...messages, savedMessage];
-        setMessages(updated);
-        setStats(calculateStats(updated));
-      }
+      // Mettre à jour immédiatement l'interface
+      const updated = [...messages, savedMessage];
+      setMessages(updated);
+      setStats(calculateStats(updated));
+      setLastMessageCount(updated.length);
 
       // 2. Appel à l'API pour déclencher n8n
       try {
-        console.log('Appel webhook n8n...');
+        console.log('🔗 Appel webhook n8n...');
         const response = await fetch('/api/webhook/n8n', {
           method: 'POST',
           headers: {
@@ -265,46 +358,65 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
         });
 
         const result = await response.json();
-        console.log('Réponse webhook:', result);
+        console.log('📊 Réponse webhook:', result);
 
         if (!response.ok) {
-          console.warn('Webhook n8n a échoué:', result);
-        } else if (result.success && result.data && result.data.response) {
-          // n8n a répondu directement, sauvegarder la réponse
-          console.log('Sauvegarde de la réponse n8n:', result.data.response);
-          
-          const assistantMessage = {
-            book_id: bookId,
-            title: 'Réponse Assistant',
-            content: result.data.response,
-          };
-
-          const { data: aiMessage, error: aiError } = await supabase
-            .from('book_chat')
-            .insert(assistantMessage)
-            .select()
-            .single();
-
-          if (aiError) {
-            console.error('Erreur sauvegarde réponse IA:', aiError);
-          } else {
-            console.log('Réponse IA sauvegardée:', aiMessage);
+          console.warn('⚠️ Webhook n8n a échoué:', result);
+          setWaitingForAI(false);
+        } else {
+          // Si n8n a répondu directement avec une réponse IA
+          if (result.success && result.data && 
+              (result.data.response || result.data.aiResponse || result.data.message)) {
             
-            // Mettre à jour immédiatement l'interface si WebSocket ne fonctionne pas
-            if (wsStatus !== 'connected') {
-              const updatedWithAI = [...messages, savedMessage, aiMessage];
+            const aiResponse = result.data.response || result.data.aiResponse || result.data.message;
+            console.log('🤖 Réponse IA directe détectée');
+            
+            const assistantMessage = {
+              book_id: bookId,
+              title: 'Réponse Assistant',
+              content: aiResponse,
+            };
+
+            const { data: aiMessage, error: aiError } = await supabase
+              .from('book_chat')
+              .insert(assistantMessage)
+              .select()
+              .single();
+
+            if (aiError) {
+              console.error('❌ Erreur sauvegarde réponse IA:', aiError);
+            } else {
+              console.log('✅ Réponse IA sauvegardée:', aiMessage.id);
+              setWaitingForAI(false);
+              
+              // Mettre à jour immédiatement l'interface
+              const updatedWithAI = [...updated, aiMessage];
               setMessages(updatedWithAI);
               setStats(calculateStats(updatedWithAI));
+              setLastMessageCount(updatedWithAI.length);
             }
+          } else {
+            // Sinon, la réponse arrivera via WebSocket/polling
+            console.log('⏳ En attente de la réponse IA via realtime...');
+            
+            // Timeout de sécurité pour arrêter l'attente après 60 secondes
+            setTimeout(() => {
+              if (waitingForAI) {
+                console.warn('⏰ Timeout attente réponse IA');
+                setWaitingForAI(false);
+              }
+            }, 60000);
           }
         }
-      } catch (webhookError) {
-        console.error('Erreur webhook n8n:', webhookError);
-        // Ne pas bloquer l'envoi du message si n8n échoue
+
+      } catch (webhookError: any) {
+        console.error('💥 Erreur webhook n8n:', webhookError);
+        setWaitingForAI(false);
       }
 
-    } catch (error) {
-      console.error('Error sending message:', error);
+    } catch (error: any) {
+      console.error('💥 Error sending message:', error);
+      setWaitingForAI(false);
       alert('Erreur lors de l\'envoi du message');
     } finally {
       setSending(false);
@@ -312,7 +424,6 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
   };
 
   const exportBook = async () => {
-    // Extraire uniquement le contenu utilisateur pour l'export
     const userContent = messages
       .filter(m => m.title?.toLowerCase().includes('utilisateur'))
       .map(m => m.content)
@@ -329,6 +440,15 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
     URL.revokeObjectURL(url);
   };
 
+  const getConnectionStatus = () => {
+    if (wsStatus === 'connected') return { icon: '🟢', text: 'WebSocket connecté', color: 'text-green-600' };
+    if (wsStatus === 'polling') return { icon: '🟡', text: 'Mode polling actif', color: 'text-yellow-600' };
+    if (wsStatus === 'connecting') return { icon: '🔄', text: 'Connexion...', color: 'text-blue-600' };
+    return { icon: '🔴', text: 'Déconnecté', color: 'text-red-600' };
+  };
+
+  const connectionStatus = getConnectionStatus();
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -339,7 +459,7 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header avec informations enrichies */}
+      {/* Header avec informations */}
       <div className="border-b border-gray-200 p-4 bg-white">
         <div className="flex items-center justify-between">
           <div className="flex-1">
@@ -347,36 +467,29 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
               {book?.title || 'Mon livre'}
             </h1>
             
-            {/* Statistiques en temps réel */}
             <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-              <span className="flex items-center space-x-1">
-                <span>📝</span>
-                <span>{stats.user_words} mots écrits</span>
-              </span>
-              <span>•</span>
-              <span className="flex items-center space-x-1">
-                <span>📄</span>
-                <span>{stats.estimated_pages} pages estimées</span>
-              </span>
-              <span>•</span>
-              <span className="flex items-center space-x-1">
-                <span>💬</span>
-                <span>{stats.total_messages} échanges</span>
-              </span>
-              <span>•</span>
+              <span>📝 {stats.user_words} mots</span>
+              <span>📄 {stats.estimated_pages} pages</span>
+              <span>💬 {stats.total_messages} échanges</span>
+              
+              {/* Statut de connexion amélioré */}
               <div className="flex items-center space-x-1">
-                <div className={`w-2 h-2 rounded-full ${
-                  wsStatus === 'connected' ? 'bg-green-500' : 
-                  wsStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
-                }`}></div>
-                <span className="text-xs">
-                  {wsStatus === 'connected' ? 'Synchronisé' : 
-                   wsStatus === 'connecting' ? 'Synchronisation...' : 'Hors ligne'}
+                <span>{connectionStatus.icon}</span>
+                <span className={`text-xs ${connectionStatus.color}`}>
+                  {connectionStatus.text}
                 </span>
               </div>
+              
+              {/* Indicateur d'attente IA */}
+              {waitingForAI && (
+                <div className="flex items-center space-x-1">
+                  <span className="animate-pulse">🤖</span>
+                  <span className="text-xs text-blue-600">Assistant réfléchit...</span>
+                </div>
+              )}
             </div>
 
-            {/* Barre de progression si objectif défini */}
+            {/* Barre de progression */}
             {book?.target_words && (
               <div className="mt-2">
                 <div className="flex justify-between text-xs text-gray-500 mb-1">
@@ -420,7 +533,7 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
           </div>
         </div>
 
-        {/* Panneau de statistiques détaillées */}
+        {/* Panneau de statistiques */}
         {showStats && (
           <div className="mt-4 p-4 bg-gray-50 rounded-lg grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
@@ -436,14 +549,16 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
               <div className="text-2xl font-bold text-green-600">{stats.estimated_pages}</div>
             </div>
             <div>
-              <div className="font-medium text-gray-900">Échanges IA</div>
-              <div className="text-2xl font-bold text-purple-600">{Math.floor(stats.total_messages / 2)}</div>
+              <div className="font-medium text-gray-900">Connexion</div>
+              <div className={`text-sm font-bold ${connectionStatus.color}`}>
+                {connectionStatus.text}
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Interface de chat standard */}
+      {/* Interface de chat */}
       <div className="flex-1">
         <MessageListSupabase messages={messages} />
       </div>
@@ -451,7 +566,11 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
       <MessageInputSupabase
         onSendMessage={handleSendMessage}
         disabled={sending}
-        placeholder="Demandez de l'aide à votre assistant d'écriture..."
+        placeholder={
+          waitingForAI 
+            ? "⏳ Assistant en train de répondre..." 
+            : "Demandez de l'aide à votre assistant d'écriture..."
+        }
       />
     </div>
   );
