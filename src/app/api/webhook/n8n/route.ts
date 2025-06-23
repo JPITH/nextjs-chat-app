@@ -1,4 +1,4 @@
-// 1. Corriger src/app/api/webhook/n8n/route.ts
+// src/app/api/webhook/n8n/route.ts - Version simplifiée
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase'
 
@@ -14,19 +14,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Configuration du webhook n8n
+    // Configuration simple du webhook n8n
     const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL;
     const username = process.env.NEXT_PUBLIC_N8N_WEBHOOK_USER;
     const password = process.env.NEXT_PUBLIC_N8N_WEBHOOK_PASSWORD;
 
-    if (!webhookUrl || !username || !password) {
+    if (!webhookUrl) {
       return NextResponse.json({ 
         success: false, 
-        message: 'Configuration n8n manquante' 
+        message: 'Webhook n8n non configuré' 
       }, { status: 500 });
     }
 
-    // Préparer le payload pour n8n
+    // Payload simple pour n8n
     const payload = {
       bookId,
       userId,
@@ -34,18 +34,22 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     };
 
-    console.log('Envoi webhook n8n:', payload);
-    
-    const basicAuth = 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
+    console.log('Envoi vers n8n:', { webhookUrl, payload });
+
+    // Appel webhook sans authentification si pas configurée
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'User-Agent': 'ChatApp/1.0'
+    };
+
+    if (username && password) {
+      const basicAuth = 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
+      headers['Authorization'] = basicAuth;
+    }
 
     const webhookResponse = await fetch(webhookUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': basicAuth,
-        'Origin': 'http://localhost:3000',
-        'User-Agent': 'ChatApp/1.0',
-      },
+      headers,
       body: JSON.stringify(payload),
     });
 
@@ -56,14 +60,16 @@ export async function POST(request: NextRequest) {
         statusText: webhookResponse.statusText,
         body: errorText
       });
+      
+      // Ne pas faire échouer si n8n ne répond pas
       return NextResponse.json({ 
-        success: false, 
-        message: `Erreur webhook n8n: ${webhookResponse.status}`,
-        details: errorText
-      }, { status: 500 });
+        success: true, 
+        message: 'Message envoyé mais n8n indisponible',
+        webhookError: `${webhookResponse.status}: ${errorText}`
+      });
     }
 
-    const result = await webhookResponse.json();
+    const result = await webhookResponse.json().catch(() => ({}));
     console.log('Réponse n8n:', result);
 
     return NextResponse.json({ 
@@ -83,15 +89,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Route pour recevoir les réponses n8n
+// Route simplifiée pour recevoir les réponses n8n
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { 
-      bookId, 
-      response, 
-      timestamp
-    } = body
+    const { bookId, response, timestamp } = body
 
     if (!bookId || !response) {
       return NextResponse.json(
@@ -100,11 +102,10 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    console.log('Réponse n8n reçue:', { bookId, responseLength: response.length });
+    console.log('Réponse n8n reçue pour livre:', bookId);
 
-    // Sauvegarder la réponse assistant
+    // Sauvegarder la réponse de l'IA
     const assistantMessage = {
-      id: crypto.randomUUID(),
       book_id: bookId,
       title: 'Réponse Assistant',
       content: response,
@@ -118,7 +119,7 @@ export async function PUT(request: NextRequest) {
       .insert(assistantMessage);
 
     if (messageError) {
-      console.error('Erreur sauvegarde message assistant:', messageError);
+      console.error('Erreur sauvegarde réponse IA:', messageError);
       return NextResponse.json(
         { error: 'Erreur sauvegarde message' },
         { status: 500 }
@@ -127,7 +128,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Réponse n8n traitée' 
+      message: 'Réponse IA sauvegardée' 
     });
 
   } catch (error) {

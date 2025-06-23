@@ -1,385 +1,218 @@
-# Next.js Chat App avec Supabase & n8n
+# 🚀 Roadmap ChatApp - Assistant IA pour création de livres
 
-Application de chat moderne construite avec Next.js, Supabase (authentification, base de données, WebSocket temps réel), et intégration n8n pour l'IA. UI responsive avec gestion avancée des sessions, sécurité, et expérience utilisateur.
+## 🎯 Vision claire du produit
 
----
+**"Écrivez votre livre entier en conversant avec une IA spécialisée"**
 
-## 📁 Structure du projet (2025)
-
-```
-nextjs-chat-app/
-├── .env.local / .env.example
-├── package.json
-├── README.md
-├── src/
-│   ├── app/
-│   │   ├── layout.tsx
-│   │   ├── page.tsx
-│   │   ├── auth/
-│   │   │   ├── signin/page.tsx
-│   │   │   ├── signup/page.tsx
-│   │   │   ├── confirm-email/page.tsx
-│   │   │   ├── reset-password/page.tsx
-│   │   ├── dashboard/page.tsx
-│   │   ├── chat/[sessionId]/page.tsx
-│   ├── components/
-│   │   ├── auth/
-│   │   │   ├── AuthProvider.tsx
-│   │   │   ├── AuthErrorBoundary.tsx
-│   │   │   ├── SignInFormSupabase.tsx
-│   │   │   ├── SignUpFormSupabase.tsx
-│   │   ├── chat/
-│   │   │   ├── ChatInterfaceSupabase.tsx
-│   │   │   ├── MessageListSupabase.tsx
-│   │   │   ├── MessageInputSupabase.tsx
-│   │   ├── layout/
-│   │   │   ├── HeaderSupabase.tsx
-│   │   │   ├── Navigation.tsx
-│   │   ├── ui/ (Button, Input, Card...)
-│   ├── lib/
-│   │   ├── supabase.ts
-│   │   ├── auth-supabase.ts
-│   │   ├── ...
-│   ├── types/
-│   └── middleware.ts
-└── ...
-```
+### Principe unique
+- **1 livre = 1 conversation** avec l'IA
+- L'utilisateur développe son livre complet via le chat
+- L'IA adapte son assistance selon le genre choisi
+- Export final du livre rédigé
 
 ---
 
-## 🚀 Installation & Configuration
+## ✅ Phase 1: MVP Fonctionnel (TERMINÉ)
 
-### 1. Prérequis
-- Node.js 18+, pnpm
-- Compte Supabase (https://supabase.com)
-- n8n (pour l'IA, optionnel)
+### Base technique solide
+- [x] Next.js 15 + Supabase + n8n
+- [x] Authentification complète
+- [x] Chat temps réel avec WebSocket
+- [x] CRUD des projets de livres
+- [x] Intégration IA basique
 
-### 2. Variables d'environnement (`.env.local`)
-
-```
-NEXT_PUBLIC_SUPABASE_URL=...   # URL de votre projet Supabase
-NEXT_PUBLIC_SUPABASE_ANON_KEY=... # Clé anonyme Supabase
-N8N_WEBHOOK_URL=...            # URL du webhook n8n
-```
-
-### 3. Setup Supabase
-- Créez les tables `profiles`, `chat_sessions`, `chat_messages` (voir `/src/lib/supabase.ts` pour les types)
-- Ajoutez la colonne `session_id` (UUID) dans `profiles`
-- Activez la Row Level Security (RLS) sur toutes les tables et définissez des policies adaptées
-- Copiez l'URL et la clé anonyme dans `.env.local`
-
-### 4. Lancer l'app
-```bash
-pnpm install
-pnpm dev
-```
+### Interface utilisateur
+- [x] Dashboard des livres
+- [x] Interface de chat responsive
+- [x] Statistiques de base (mots, messages)
+- [x] Export simple en TXT
 
 ---
 
-## 🛡️ Sécurité
-- Authentification Supabase (email/password)
-- Gestion des sessions avec "Se souvenir de moi" (expiration configurable)
-- Confirmation d'email, reset password, gestion des erreurs
-- RLS activé sur toutes les tables (impératif !)
-- Nettoyage automatique des sessions corrompues
+## 🎨 Phase 2: Templates et UX améliorée (1-2 semaines)
+
+### Templates de livres par genre ⭐
+- [ ] **12 templates spécialisés**
+  - Roman, Nouvelle, Mémoires, Essai
+  - Développement personnel, Business
+  - Poésie, Jeunesse, Voyage, Cuisine
+  - Thriller, Fantasy
+  
+- [ ] **IA contextuelle par genre**
+  - Prompts spécialisés selon le type de livre
+  - Suggestions adaptées au style littéraire
+  - Structure recommandée par genre
+
+### Interface enrichie
+- [ ] **Création de livre guidée**
+  - Sélection de template avec aperçu
+  - Configuration objectifs (mots cibles)
+  - Prompt initial automatique selon le genre
+
+- [ ] **Chat amélioré**
+  - Mode "Focus écriture" vs "Mode chat"
+  - Suggestions contextuelles intelligentes
+  - Différenciation visuelle contenu/discussion
+
+- [ ] **Statistiques avancées**
+  - Compteur temps réel de mots utilisateur
+  - Barre de progression vers objectif
+  - Estimation pages et temps de lecture
+  - Ratio contenu/discussion avec IA
+
+### Workflow n8n enrichi
+- [ ] **Assistant spécialisé**
+  - Détection automatique du type de contenu
+  - Prompts adaptatifs selon le genre
+  - Suggestions proactives selon la progression
 
 ---
 
-## 💬 Fonctionnalités actuelles
-- Inscription, connexion, confirmation d'email, reset password
-- Dashboard avec liste des sessions de chat (par utilisateur)
-- Interface de chat temps réel (WebSocket Supabase)
-- Historique des messages par session
-- Envoi de messages à un webhook n8n pour traitement IA (réponse automatique)
-- UI moderne (Tailwind, composants custom, messages d'erreur/succès)
-- Gestion "Se souvenir de moi" (session longue ou courte)
-- Gestion automatique de la déconnexion si session expirée ou corrompue
-- Gestion des erreurs globales (AuthErrorBoundary)
+## 📚 Phase 3: Outils d'auteur (2-4 semaines)
+
+### Export professionnel
+- [ ] **Formats multiples**
+  - PDF formaté (mise en page livre)
+  - DOCX pour éditeurs
+  - EPUB pour e-books
+  - Export "contenu pur" (sans les échanges IA)
+
+- [ ] **Personnalisation export**
+  - Page de titre avec métadonnées
+  - Table des matières automatique
+  - Notes de bas de page
+  - Formatage selon standards éditoriaux
+
+### Outils d'écriture avancés
+- [ ] **Analyse de contenu**
+  - Détection répétitions
+  - Analyse de style et ton
+  - Suggestions d'amélioration
+  - Cohérence des personnages (fiction)
+
+- [ ] **Gestion de projet**
+  - Marqueurs de sections/chapitres
+  - Notes et recherches par livre
+  - Chronologie des événements
+  - Suivi des objectifs quotidiens
+
+### Collaboration IA avancée
+- [ ] **Modes d'assistance**
+  - Co-écriture (IA + utilisateur alternent)
+  - Révision et correction
+  - Brainstorming créatif
+  - Coaching d'écriture personnalisé
 
 ---
 
-## 🔌 Endpoints principaux
-- `/auth/signin` / `/auth/signup` / `/auth/confirm-email` / `/auth/reset-password`
-- `/dashboard` : liste des chats
-- `/chat/[sessionId]` : chat temps réel
-- Webhook n8n : appelé côté serveur pour chaque message utilisateur
+## ⭐ Phase 4: Communauté et monétisation (1-2 mois)
+
+### Fonctionnalités sociales
+- [ ] **Partage et feedback**
+  - Extraits publics anonymisés
+  - Groupes d'auteurs par genre
+  - Critiques constructives entre auteurs
+  - Concours d'écriture mensuels
+
+- [ ] **Mentorat et coaching**
+  - Sessions 1-on-1 avec auteurs expérimentés
+  - Masterclass intégrées à l'app
+  - Communauté Discord privée
+
+### Plans premium
+- [ ] **Freemium model**
+  - Gratuit: 1 livre, 10k mots IA/mois
+  - Pro (19€/mois): Livres illimités, IA illimitée, exports premium
+  - Auteur (49€/mois): Tous les outils + coaching + priorité
+
+- [ ] **Services additionnels**
+  - Correction professionnelle
+  - Accompagnement publication
+  - Services éditoriaux partenaires
+
+### Intégrations professionnelles
+- [ ] **Écosystème d'édition**
+  - Connexion plateformes d'auto-édition
+  - Partenariats maisons d'édition
+  - Services de correction professionnelle
+  - Designers de couvertures
 
 ---
 
-## 🔮 Fonctionnalités futures suggérées
-- Authentification OAuth (Google, GitHub...)
-- Upload et partage de fichiers dans le chat
-- Notifications push (PWA)
-- Système de rôles/admin (gestion utilisateurs)
-- Recherche dans l'historique des chats
-- Thème sombre/clair dynamique
-- Statistiques d'utilisation (nombre de messages, sessions, etc.)
-- Support mobile natif (React Native)
-- Monitoring intégré (logs, dashboard admin)
-- Tests E2E automatisés
+## 🛠️ Améliorations techniques continues
+
+### Performance et fiabilité
+- [ ] **Optimisations**
+  - Cache intelligent des conversations
+  - Lazy loading des livres
+  - Compression des exports
+  - CDN pour assets statiques
+
+- [ ] **Monitoring**
+  - Analytics utilisateur (Posthog)
+  - Tracking erreurs (Sentry)
+  - Métriques performance (Vercel Analytics)
+  - Health checks automatiques
+
+### Sécurité et sauvegarde
+- [ ] **Protection des données**
+  - Sauvegarde automatique cloud
+  - Versions multiples des livres
+  - Export de sécurité utilisateur
+  - Chiffrement des contenus sensibles
 
 ---
 
-## 📝 Notes
-- Redis et JWT custom ne sont plus nécessaires (tout passe par Supabase)
-- L'intégration n8n est optionnelle mais recommandée pour l'IA
-- Pensez à bien sécuriser vos policies RLS et vos variables d'environnement
-- Voir les fichiers `/src/lib/supabase.ts` et `/src/lib/auth-supabase.ts` pour la logique d'auth/session
-- Pour le déploiement : Vercel, Docker ou autre (voir section dédiée)
+## 📊 Métriques de succès par phase
 
+### Phase 2 (Templates)
+- **Technique**: 0 bug critique, <2s loading
+- **Usage**: 80% utilisateurs choisissent un template
+- **Engagement**: +50% temps passé par session
 
-## 📁 Structure du projet
+### Phase 3 (Outils auteur)
+- **Conversion**: 30% utilisateurs exportent leur livre
+- **Qualité**: >10k mots moyens par livre complété
+- **Satisfaction**: 4.5/5 rating app stores
 
-```
-nextjs-chat-app/
-├── .env.local
-├── .env.example
-├── .gitignore
-├── next.config.js
-├── package.json
-├── tailwind.config.js
-├── postcss.config.js
-├── README.md
-├── src/
-│   ├── app/
-│   │   ├── globals.css
-│   │   ├── layout.tsx
-│   │   ├── page.tsx                    # Landing page
-│   │   ├── auth/
-│   │   │   ├── signin/
-│   │   │   │   └── page.tsx
-│   │   │   └── signup/
-│   │   │       └── page.tsx
-│   │   ├── dashboard/
-│   │   │   └── page.tsx
-│   │   ├── chat/
-│   │   │   └── [sessionId]/
-│   │   │       └── page.tsx
-│   │   └── api/
-│   │       ├── auth/
-│   │       │   ├── signin/
-│   │       │   │   └── route.ts
-│   │       │   └── signup/
-│   │       │       └── route.ts
-│   │       ├── chat/
-│   │       │   ├── [sessionId]/
-│   │       │   │   └── route.ts
-│   │       │   ├── sessions/
-│   │       │   │   └── route.ts
-│   │       │   └── webhook/
-│   │       │       └── route.ts
-│   │       └── sse/
-│   │           └── [sessionId]/
-│   │               └── route.ts
-│   ├── components/
-│   │   ├── ui/
-│   │   │   ├── Button.tsx
-│   │   │   ├── Input.tsx
-│   │   │   └── Card.tsx
-│   │   ├── auth/
-│   │   │   ├── SignInForm.tsx
-│   │   │   └── SignUpForm.tsx
-│   │   ├── chat/
-│   │   │   ├── ChatInterface.tsx
-│   │   │   ├── MessageList.tsx
-│   │   │   └── MessageInput.tsx
-│   │   ├── dashboard/
-│   │   │   └── SessionsList.tsx
-│   │   └── layout/
-│   │       ├── Header.tsx
-│   │       └── Navigation.tsx
-│   ├── lib/
-│   │   ├── auth.ts
-│   │   ├── redis.ts
-│   │   ├── jwt.ts
-│   │   └── utils.ts
-│   ├── types/
-│   │   ├── auth.ts
-│   │   └── chat.ts
-│   └── middleware.ts
-└── docker-compose.yml              # Pour Redis local
-```
+### Phase 4 (Communauté)
+- **Communauté**: 1000+ auteurs actifs
+- **Monétisation**: 20% taux conversion premium
+- **Rétention**: 60% utilisateurs actifs à 3 mois
 
-## 🚀 Installation et configuration
+---
 
-### 1. Initialisation du projet
+## 🎯 Actions immédiates (cette semaine)
 
-```bash
-# Créer le projet
-npx create-next-app@latest nextjs-chat-app --typescript --tailwind --eslint --app
-cd nextjs-chat-app
+### Jour 1-2: Finalisation technique
+- [x] Corrections TypeScript appliquées
+- [ ] Tests complets de l'application
+- [ ] Déploiement Vercel stable
 
-# Installer les dépendances
-pnpm add redis jsonwebtoken bcryptjs uuid
-pnpm add -D @types/jsonwebtoken @types/bcryptjs @types/uuid
+### Jour 3-5: Templates et UX
+- [ ] Intégration système de templates
+- [ ] Interface création livre améliorée
+- [ ] Chat enrichi avec statistiques temps réel
 
-# Copier les variables d'environnement
-cp .env.example .env.local
-```
+### Weekend: Tests utilisateurs
+- [ ] Inviter 5-10 bêta testeurs
+- [ ] Recueillir feedback interface
+- [ ] Prioriser améliorations Phase 3
 
-### 2. Variables d'environnement (.env.local)
+---
 
-```env
-# JWT
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-JWT_EXPIRES_IN=7d
+## 💡 Différenciateurs concurrentiels
 
-# Redis
-REDIS_URL=redis://localhost:6379
-REDIS_PASSWORD=
+### Vs autres outils d'écriture
+- **Simplicité**: 1 conversation = 1 livre complet
+- **Spécialisation**: IA formée pour chaque genre littéraire
+- **Accompagnement**: De l'idée au livre fini
+- **Communauté**: Auteurs aidant d'autres auteurs
 
-# n8n Webhook
-N8N_WEBHOOK_URL=http://localhost:5678/webhook/chat-response
+### Vs ChatGPT/Claude direct
+- **Interface dédiée**: Optimisée pour l'écriture longue
+- **Mémoire persistante**: L'IA se souvient de tout le livre
+- **Export professionnel**: Livres prêts à publier
+- **Progression trackée**: Objectifs et statistiques
 
-# Next.js
-NEXTAUTH_SECRET=your-nextauth-secret-key
-NEXTAUTH_URL=http://localhost:3000
-```
-
-### 3. Démarrer Redis avec Docker
-
-```bash
-# Créer et démarrer Redis
-docker-compose up -d redis
-
-# Vérifier que Redis fonctionne
-docker-compose logs redis
-```
-
-### 4. Configuration n8n
-
-1. Créer un workflow n8n avec un webhook trigger
-2. URL du webhook : `http://localhost:5678/webhook/chat-response`
-3. Configurer le workflow pour traiter les messages et renvoyer une réponse
-4. Le webhook doit recevoir : `{ sessionId, message, userId }`
-5. Le webhook doit renvoyer : `{ sessionId, response, timestamp }`
-
-### 5. Lancement
-
-```bash
-# Développement
-pnpm dev
-
-# Production
-pnpm build
-pnpm start
-```
-
-## 📱 Fonctionnalités
-
-### Authentification
-- Inscription/Connexion avec email/mot de passe
-- JWT pour la gestion des sessions
-- Middleware de protection des routes
-
-### Chat
-- Interface de chat en temps réel
-- Intégration avec webhook n8n
-- Historique stocké dans Redis
-- Server-Sent Events pour les mises à jour temps réel
-
-### Dashboard
-- Liste des sessions de chat
-- Création de nouvelles sessions
-- Navigation vers les chats existants
-
-## 🔧 Configuration
-
-### Redis Structure
-```
-chat:session:{sessionId} -> JSON des messages
-chat:sessions:{userId} -> Set des sessionIds
-user:{userId} -> JSON des données utilisateur
-```
-
-### API Endpoints
-- `POST /api/auth/signin` - Connexion
-- `POST /api/auth/signup` - Inscription  
-- `GET /api/chat/sessions` - Liste des sessions
-- `POST /api/chat/sessions` - Créer une session
-- `GET /api/chat/[sessionId]` - Messages d'une session
-- `POST /api/chat/[sessionId]` - Envoyer un message
-- `GET /api/sse/[sessionId]` - Server-Sent Events
-- `POST /api/chat/webhook` - Webhook n8n
-
-## 🎨 Interface
-
-L'application utilise Tailwind CSS avec un design moderne et responsive :
-- Landing page attractive
-- Formulaires d'authentification
-- Dashboard avec liste des chats
-- Interface de chat intuitive
-- Thème sombre/clair (optionnel)
-
-## 🔒 Sécurité
-
-- Hachage des mots de passe avec bcrypt
-- JWT pour l'authentification
-- Middleware de protection des routes
-- Validation des données côté serveur
-- Rate limiting (recommandé en production)
-
-## 📊 Monitoring
-
-- Logs des erreurs
-- Métriques Redis
-- Monitoring des webhooks n8n
-
-## 🚀 Déploiement
-
-### Vercel
-```bash
-pnpm build
-vercel --prod
-```
-
-### Docker
-```bash
-docker build -t nextjs-chat-app .
-docker run -p 3000:3000 nextjs-chat-app
-```
-
-## 🛠️ Développement
-
-### Scripts disponibles
-```bash
-pnpm dev          # Développement
-pnpm build        # Build production
-pnpm start        # Démarrer en production
-pnpm lint         # Linter
-pnpm type-check   # Vérification TypeScript
-```
-
-### Tests
-```bash
-pnpm test         # Tests unitaires
-pnpm test:e2e     # Tests E2E
-```
-
-## 📝 Notes
-
-- L'application utilise l'App Router de Next.js 13+
-- Redis est utilisé pour le stockage des sessions et l'historique
-- Les messages sont traités via webhook n8n
-- Server-Sent Events pour les mises à jour temps réel
-- Interface responsive avec Tailwind CSS
-
-## 🆘 Troubleshooting
-
-### Redis connection
-```bash
-# Vérifier Redis
-redis-cli ping
-
-# Voir les logs
-docker-compose logs redis
-```
-
-### n8n webhook
-- Vérifier que n8n est démarré
-- Tester le webhook avec curl
-- Vérifier les logs n8n
-
-### JWT errors
-- Vérifier JWT_SECRET dans .env.local
-- Régénérer le token si nécessaire
+Cette roadmap transforme ChatApp en véritable plateforme de création littéraire assistée par IA, avec un potentiel business solide et une proposition de valeur unique sur le marché.

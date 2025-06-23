@@ -1,7 +1,7 @@
-// src/components/auth/AuthProvider.tsx (version avec gestion WebSocket améliorée)
+// src/components/auth/AuthProvider.tsx (corrigé)
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react'
 import { type User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase'
 
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setUser(user)
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Erreur récupération utilisateur:', error)
         // En cas d'erreur critique, nettoyer la session
         try {
@@ -89,34 +89,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     })
 
-    // Gestion des erreurs WebSocket globales
-    const handleWebSocketError = (error: any) => {
-      console.warn('Erreur WebSocket détectée:', error)
-      // Ne pas interrompre l'app à cause d'erreurs WebSocket
-    }
-
-    // Supprimer les gestionnaires d'erreur WebSocket par défaut qui peuvent être trop verbeux
-    const originalConsoleError = console.error
-    console.error = (...args) => {
-      const message = args[0]?.toString() || ''
-      
-      // Filtrer les erreurs WebSocket non critiques
-      if (message.includes('WebSocket connection') || 
-          message.includes('Failed to fetch') ||
-          message.includes('websocket')) {
-        // Logger de manière moins invasive
-        console.warn('WebSocket issue (non-critique):', ...args)
-        return
-      }
-      
-      // Logger les autres erreurs normalement
-      originalConsoleError.apply(console, args)
-    }
-
     return () => {
       subscription.unsubscribe()
-      // Restaurer console.error
-      console.error = originalConsoleError
     }
   }, [])
 
