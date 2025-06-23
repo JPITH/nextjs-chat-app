@@ -1,4 +1,5 @@
-// src/lib/book-templates.ts - Version 2.0 avec prompts complets
+// src/lib/book-templates.ts - Version 3.0 avec prompts d'écriture directe
+
 export interface BookTemplate {
   id: string;
   name: string;
@@ -6,7 +7,7 @@ export interface BookTemplate {
   genre: string;
   targetWords: number;
   emoji: string;
-  fullPrompt: string; // Prompt complet qui sera envoyé automatiquement
+  fullPrompt: string; // Prompt qui déclenche l'écriture immédiate
   suggestedStructure: string[];
 }
 
@@ -18,28 +19,40 @@ export const bookTemplates: BookTemplate[] = [
     genre: 'Fiction',
     targetWords: 80000,
     emoji: '📖',
-    fullPrompt: `Bonjour ! Je veux écrire un roman de fiction et j'aimerais votre aide en tant qu'assistant d'écriture spécialisé.
+    fullPrompt: `🎯 **MISSION ÉCRITURE : Roman de fiction**
 
-Voici ce que j'aimerais créer :
-- Un roman de fiction d'environ 80 000 mots
-- Une histoire captivante avec des personnages développés
-- Une intrigue bien structurée
+Parfait ! Passons directement à l'action pour votre roman de fiction. Voici votre plan de travail immédiat :
 
-Pouvez-vous m'aider à :
-1. Développer une idée centrale pour mon roman
-2. Créer des personnages principaux tridimensionnels
-3. Établir l'univers et le contexte de l'histoire
-4. Structurer l'intrigue en 3 actes
-5. Planifier les chapitres
+**📝 ÉTAPE 1 : Votre premier chapitre (À écrire MAINTENANT)**
 
-En tant qu'expert en romans de fiction, guidez-moi étape par étape. Commençons par explorer quelques idées de base pour mon histoire. Que suggérez-vous comme première étape ?`,
+Commencez par écrire l'incipit de votre roman - les 500 premiers mots qui vont accrocher le lecteur. Voici une structure testée :
+
+**• Phrase d'ouverture marquante** (action, dialogue percutant, ou image forte)
+**• Présentation du protagoniste** (nom, âge, situation actuelle)
+**• Le décor** (lieu, époque, ambiance en quelques touches)
+**• L'élément déclencheur** (ce qui va changer la vie du héros)
+
+**🚀 COMMENCEZ PAR ÉCRIRE :**
+"[Votre phrase d'ouverture ici - quelque chose qui donne envie de lire la suite]"
+
+**📋 APRÈS VOTRE PREMIER PARAGRAPHE, JE VOUS AIDERAI AVEC :**
+
+✅ **Le profil complet de votre héros** (background, motivations, défauts)
+✅ **L'intrigue principale** (conflit central + 3 obstacles majeurs)
+✅ **L'univers** (règles, géographie, époque)
+✅ **Le plan des 12 premiers chapitres**
+✅ **Les personnages secondaires clés**
+
+**💡 CONSEIL D'EXPERT :** Ne réfléchissez pas trop - lancez-vous ! Les meilleurs romans naissent quand on commence à écrire. Tapez votre premier paragraphe maintenant, même imparfait.
+
+**Votre mission immédiate : Écrivez les 3 premières phrases de votre roman. GO !** 🏃‍♂️`,
     suggestedStructure: [
-      "Développement de l'idée principale",
-      "Création des personnages principaux", 
-      "Établissement de l'univers/contexte",
-      "Structure de l'intrigue (3 actes)",
-      "Écriture chapitre par chapitre",
-      "Révision et peaufinage"
+      "Premier chapitre et incipit",
+      "Développement du protagoniste", 
+      "Construction de l'univers",
+      "Intrigue et conflits principaux",
+      "Personnages secondaires",
+      "Plan détaillé des chapitres"
     ]
   },
   {
@@ -49,28 +62,42 @@ En tant qu'expert en romans de fiction, guidez-moi étape par étape. Commençon
     genre: 'Fiction courte',
     targetWords: 5000,
     emoji: '📝',
-    fullPrompt: `Salut ! Je veux écrire une nouvelle impactante d'environ 5000 mots et j'ai besoin de votre expertise.
+    fullPrompt: `⚡ **MISSION ÉCRITURE : Nouvelle impactante**
 
-Mon objectif :
-- Créer une histoire courte mais mémorable
-- Avoir un impact émotionnel fort sur le lecteur
-- Construire vers une chute ou révélation marquante
-- Maîtriser l'art de l'économie de mots
+C'est parti ! Les nouvelles sont l'art de la précision - chaque mot compte. Voici votre roadmap d'écriture immédiate :
 
-En tant que spécialiste des nouvelles, aidez-moi à :
-1. Trouver un concept central puissant
-2. Créer un personnage principal attachant rapidement
-3. Établir le conflit en quelques lignes
-4. Construire la tension narrative
-5. Préparer une chute efficace
+**📝 DÉFI 1 : Votre première scène (300 mots max)**
 
-L'art de la nouvelle, c'est dire beaucoup avec peu. Comment commencer ? Avez-vous des techniques pour créer un impact immédiat dès les premières lignes ?`,
+Écrivez MAINTENANT l'ouverture de votre nouvelle avec cette structure efficace :
+
+**• 1 personnage principal** (+ 1 trait marquant)
+**• 1 situation précise** (lieu + moment + action)
+**• 1 tension immédiate** (conflit, secret, ou danger)
+
+**🎯 VOTRE MISSION :**
+Commencez par cette phrase : "Ce matin-là, [nom du héros] comprit que [événement/découverte] allait tout changer..."
+
+**⚡ APRÈS VOS 300 PREMIERS MOTS :**
+
+✅ **Le twist central** (la révélation qui va surprendre)
+✅ **L'escalade** (comment la tension monte rapidement)
+✅ **La chute finale** (résolution en 2-3 paragraphes)
+✅ **Le peaufinage** (chaque phrase optimisée)
+
+**💎 TECHNIQUE DE PRO :** Dans une nouvelle, commencez au plus près du climax. Pas de longue introduction - plongez direct dans l'action !
+
+**📊 STRUCTURE RECOMMANDÉE :**
+- 25% : Mise en situation + personnage
+- 50% : Développement du conflit
+- 25% : Climax + résolution
+
+**Votre défi immédiat : Écrivez votre premier paragraphe de 50 mots maximum. Soyez percutant !** 💥`,
     suggestedStructure: [
-      "Concept central de la nouvelle",
-      "Personnage principal et conflit",
-      "Mise en situation rapide",
+      "Ouverture percutante",
+      "Personnage et conflit immédiat",
       "Développement de la tension",
-      "Climax et résolution",
+      "Climax et révélation",
+      "Résolution efficace",
       "Peaufinage du style"
     ]
   },
@@ -81,29 +108,46 @@ L'art de la nouvelle, c'est dire beaucoup avec peu. Comment commencer ? Avez-vou
     genre: 'Non-fiction',
     targetWords: 60000,
     emoji: '👤',
-    fullPrompt: `Bonjour ! Je souhaite écrire mes mémoires ou raconter une période importante de ma vie dans un livre d'environ 60 000 mots.
+    fullPrompt: `📖 **MISSION ÉCRITURE : Vos mémoires authentiques**
 
-Ce que je veux accomplir :
-- Partager mon histoire personnelle de manière authentique
-- Transformer mes souvenirs en récit captivant
-- Transmettre mes apprentissages et réflexions
-- Créer un livre qui résonne avec les lecteurs
+Vos souvenirs sont votre trésor - transformons-les en récit captivant ! Commençons par l'écriture immédiate :
 
-J'ai besoin de votre aide pour :
-1. Identifier la période ou le thème central à raconter
-2. Structurer chronologiquement mes souvenirs
-3. Trouver le bon équilibre entre anecdotes et réflexions
-4. Donner de la profondeur aux personnages de ma vie
-5. Créer une progression narrative même dans du vécu
+**✍️ EXERCICE D'ÉCRITURE IMMÉDIAT (500 mots)**
 
-Comment fait-on pour transformer des souvenirs parfois fragmentés en un récit cohérent et engageant ? Par quoi commencer ?`,
+Choisissez UN moment marquant de votre vie et décrivez-le avec cette méthode :
+
+**• L'instant précis** (jour, heure, lieu exact)
+**• Vos sensations** (ce que vous voyiez, entendiez, ressentiez)
+**• L'émotion dominante** (peur, joie, colère, surprise...)
+**• La leçon apprise** (ce que ça vous a enseigné sur vous)
+
+**🎯 COMMENCEZ PAR :**
+"Je me souviens précisément de [date/âge] quand [événement]. C'était [description sensorielle]..."
+
+**📝 APRÈS VOTRE PREMIER RÉCIT :**
+
+✅ **Chronologie personnelle** (10 événements clés de votre vie)
+✅ **Thèmes récurrents** (les leçons qui reviennent)
+✅ **Personnages marquants** (famille, amis, mentors)
+✅ **Structure narrative** (comment organiser vos souvenirs)
+✅ **Fil conducteur** (le message principal de votre histoire)
+
+**💡 ASTUCE MÉMOIRES :** Écrivez comme si vous racontiez à un ami. L'authenticité prime sur le style parfait.
+
+**🗂️ PLAN DE TRAVAIL :**
+1. **Enfance** (3-4 souvenirs fondateurs)
+2. **Adolescence** (défis et découvertes)
+3. **Vie adulte** (tournants majeurs)
+4. **Réflexions actuelles** (ce que vous en pensez aujourd'hui)
+
+**Votre mission immédiate : Racontez votre souvenir le plus vif en 200 mots. Allez-y !** 🚀`,
     suggestedStructure: [
-      "Période/thème principal à raconter",
+      "Souvenir fondateur détaillé",
       "Chronologie des événements clés",
-      "Personnages importants de cette période",
-      "Réflexions et apprentissages",
-      "Écriture des chapitres par période",
-      "Ajout de perspectives actuelles"
+      "Personnages importants",
+      "Thèmes et apprentissages",
+      "Réflexions et perspectives",
+      "Structure narrative finale"
     ]
   },
   {
@@ -113,31 +157,48 @@ Comment fait-on pour transformer des souvenirs parfois fragmentés en un récit 
     genre: 'Développement personnel',
     targetWords: 50000,
     emoji: '🌱',
-    fullPrompt: `Salut ! Je veux créer un livre de développement personnel d'environ 50 000 mots pour vraiment aider les gens à transformer leur vie.
+    fullPrompt: `🎯 **MISSION ÉCRITURE : Guide de transformation**
 
-Mon objectif :
-- Créer un guide pratique et actionnable
-- Inspirer et motiver les lecteurs
-- Proposer des exercices concrets
-- Partager des méthodes qui fonctionnent vraiment
+Stop la théorie - passons à l'action ! Votre livre va changer des vies. Commençons par créer du contenu impactant :
 
-Domaines d'expertise possibles : [confiance en soi, productivité, relations, carrière, bien-être, habitudes, mindset, etc.]
+**⚡ EXERCICE IMMÉDIAT : Votre méthode signature (400 mots)**
 
-Aidez-moi à :
-1. Identifier le problème spécifique que je veux résoudre
-2. Développer une méthode ou approche unique
-3. Créer des étapes pratiques et des exercices
-4. Structurer le contenu de manière progressive
-5. Inclure des témoignages et exemples concrets
+Rédigez MAINTENANT votre introduction avec cette structure :
 
-Un bon livre de développement personnel change vraiment des vies. Comment puis-je m'assurer que le mien aura cet impact ? Commençons par définir le domaine où je veux aider les gens.`,
+**• Le problème** (que vivez-vous/vos lecteurs ?)
+**• Votre solution** (votre approche unique en 3-5 étapes)
+**• La promesse** (résultat concret après application)
+**• Premier exercice pratique** (action immédiate pour le lecteur)
+
+**🚀 COMMENCEZ PAR :**
+"Si vous lisez ce livre, c'est que [problème] vous préoccupe. J'ai découvert une méthode qui [promesse de résultat]..."
+
+**🛠️ APRÈS VOTRE INTRO :**
+
+✅ **Votre méthode complète** (5-7 étapes progressives)
+✅ **15 exercices pratiques** (un par chapitre)
+✅ **Études de cas** (3 histoires de réussite)
+✅ **Plan d'action 30 jours** (programme concret)
+✅ **Outils et ressources** (templates, checklist)
+
+**💡 RÈGLE D'OR :** Chaque page doit apporter une valeur actionnable. Pas de blabla - du concret !
+
+**📊 STRUCTURE TESTÉE :**
+- **Partie 1 :** Diagnostic (où vous êtes)
+- **Partie 2 :** Méthode (comment progresser)  
+- **Partie 3 :** Action (plan concret)
+- **Partie 4 :** Maintien (pérenniser les résultats)
+
+**🎖️ VOTRE CRÉDIBILITÉ :** Intégrez votre expérience personnelle - vos échecs ET vos réussites.
+
+**Votre mission immédiate : Définissez LE problème que vous résolvez en 1 phrase claire !** 💪`,
     suggestedStructure: [
-      "Identification du problème à résoudre",
-      "Méthode ou approche proposée",
-      "Étapes pratiques et exercices",
-      "Témoignages et exemples",
-      "Plan d'action pour le lecteur",
-      "Ressources complémentaires"
+      "Problème et solution claire",
+      "Méthode étape par étape",
+      "Exercices pratiques concrets",
+      "Études de cas et témoignages",
+      "Plan d'action détaillé",
+      "Outils et ressources"
     ]
   },
   {
@@ -147,31 +208,52 @@ Un bon livre de développement personnel change vraiment des vies. Comment puis-
     genre: 'Business',
     targetWords: 55000,
     emoji: '💼',
-    fullPrompt: `Bonjour ! Je veux partager mon expertise professionnelle dans un livre business d'environ 55 000 mots qui apportera une vraie valeur aux entrepreneurs et professionnels.
+    fullPrompt: `💼 **MISSION ÉCRITURE : Expertise business**
 
-Mon objectif :
-- Transmettre mes connaissances et expérience terrain
-- Créer des frameworks pratiques et réutilisables
-- Aider d'autres entrepreneurs à éviter mes erreurs
-- Établir ma crédibilité dans mon domaine
+Votre expérience = la valeur pour d'autres entrepreneurs. Transformons vos connaissances en contenu business actionnable !
 
-Domaines possibles : [marketing, vente, management, finance, startups, transformation digitale, leadership, etc.]
+**📊 EXERCICE IMMÉDIAT : Votre framework signature (500 mots)**
 
-J'ai besoin de votre aide pour :
-1. Structurer mon expertise en contenu actionnable
-2. Créer des méthodologies claires et applicables
-3. Intégrer des études de cas et exemples concrets
-4. Développer des outils pratiques pour les lecteurs
-5. Rendre le contenu accessible sans simplifier à l'excès
+Créez MAINTENANT le framework qui fait votre expertise unique :
 
-Un bon livre business doit équilibrer théorie, pratique et storytelling. Comment transformer mon expérience en valeur pour d'autres entrepreneurs ? Commençons par identifier mon domaine d'expertise unique.`,
+**• Votre domaine d'expertise** (marketing, vente, management, etc.)
+**• Le défi business #1** (que vous résolvez mieux que personne)
+**• Votre méthode** (3-5 étapes concrètes)
+**• Cas d'étude** (votre meilleur exemple)
+
+**🎯 COMMENCEZ PAR :**
+"En [X années] dans [domaine], j'ai vu trop d'entrepreneurs échouer sur [problème]. Voici la méthode que j'ai développée pour [résultat]..."
+
+**💡 APRÈS VOTRE FRAMEWORK :**
+
+✅ **Votre histoire d'entrepreneur** (crédibilité + leçons)
+✅ **5 cas d'études détaillés** (échecs ET réussites)
+✅ **Templates business** (outils pratiques)
+✅ **Métriques et KPIs** (comment mesurer le succès)
+✅ **Roadmap 90 jours** (plan d'implémentation)
+
+**🔥 CRÉDIBILITÉ BUSINESS :**
+- Vos chiffres concrets (CA, croissance, équipe...)
+- Vos erreurs coûteuses (et comment les éviter)
+- Vos outils/méthodes exclusifs
+
+**📈 STRUCTURE BUSINESS EFFICACE :**
+1. **Diagnostic** (où en est le lecteur ?)
+2. **Stratégie** (votre approche unique)
+3. **Tactiques** (actions concrètes)
+4. **Exécution** (comment implémenter)
+5. **Optimisation** (comment améliorer)
+
+**💰 VALEUR AJOUTÉE :** Chaque chapitre = gain potentiel mesurable pour le lecteur.
+
+**Votre mission immédiate : Décrivez votre plus gros succès business en 100 mots !** 🚀`,
     suggestedStructure: [
-      "Expertise et crédibilité de l'auteur",
-      "Problématiques business abordées",
-      "Frameworks et méthodologies",
-      "Études de cas et exemples concrets",
-      "Outils et ressources pratiques",
-      "Plan d'implémentation"
+      "Expertise et crédibilité",
+      "Framework signature",
+      "Cas d'études concrets",
+      "Outils et templates",
+      "Plan d'implémentation",
+      "Métriques de succès"
     ]
   },
   {
@@ -181,31 +263,53 @@ Un bon livre business doit équilibrer théorie, pratique et storytelling. Comme
     genre: 'Thriller',
     targetWords: 75000,
     emoji: '🔍',
-    fullPrompt: `Salut ! Je veux écrire un thriller captivant d'environ 75 000 mots qui tiendra les lecteurs en haleine du début à la fin.
+    fullPrompt: `🔍 **MISSION ÉCRITURE : Thriller addictif**
 
-Mon ambition :
-- Créer une intrigue solide et crédible
-- Maintenir le suspense à chaque chapitre
-- Développer un enquêteur/protagoniste mémorable
-- Maîtriser l'art des indices et fausses pistes
-- Construire vers un climax explosif
+Le suspense commence MAINTENANT ! Créons ensemble un thriller qui tiendra vos lecteurs éveillés toute la nuit.
 
-Types possibles : [polar urbain, thriller psychologique, enquête criminelle, suspense paranormal, etc.]
+**⚡ EXERCICE IMMÉDIAT : Votre scène d'ouverture (400 mots)**
 
-Aidez-moi à :
-1. Créer le crime ou mystère central de l'histoire
-2. Développer mon protagoniste enquêteur
-3. Construire un système d'indices cohérent
-4. Gérer les révélations et plot twists
-5. Maintenir la tension narrative constante
+Écrivez votre premier chapitre avec cette recette thriller :
 
-L'art du thriller, c'est de garder le lecteur sur le fil du rasoir. Comment créer cette tension addictive ? Commençons par le mystère central - avez-vous des idées pour un crime intriguant ?`,
+**• Crime/mystère** (mort, disparition, secret découvert)
+**• Enquêteur** (flic, journaliste, amateur - 1 trait marquant)
+**• Premier indice** (qui lance l'enquête)
+**• Tension immédiate** (danger ou urgence)
+
+**🎯 COMMENCEZ PAR :**
+"Le corps fut découvert à [heure précise]. [Détail troublant]. L'inspecteur [nom] comprit immédiatement que cette affaire allait être [adjectif]..."
+
+**🕵️ APRÈS VOTRE OUVERTURE :**
+
+✅ **Votre enquêteur** (passé, méthodes, défauts)
+✅ **Le crime central** (qui, comment, pourquoi ?)
+✅ **5 indices clés** (chronologie de découverte)
+✅ **3 fausses pistes** (pour égarer le lecteur)
+✅ **Le vrai coupable** (motivation cachée)
+✅ **Plot twist final** (révélation surprise)
+
+**🎭 TECHNIQUE THRILLER :**
+- Alternez investigation et action
+- Révélez 1 indice par chapitre
+- Créez de fausses évidences
+- Gardez le vrai mobile pour la fin
+
+**🗂️ STRUCTURE ÉPROUVÉE :**
+1. **Crime** (chapitres 1-2)
+2. **Enquête initiale** (chapitres 3-6)
+3. **Complications** (chapitres 7-10)
+4. **Révélations** (chapitres 11-14)
+5. **Climax** (chapitres 15-16)
+
+**💀 RÈGLE D'OR :** Chaque chapitre doit finir sur une question ou un danger.
+
+**Votre mission immédiate : Décrivez votre crime en 3 phrases percutantes !** 🔥`,
     suggestedStructure: [
-      "Crime ou mystère central",
-      "Protagoniste enquêteur",
-      "Mise en place des indices",
-      "Développement de l'enquête",
-      "Fausses pistes et révélations",
+      "Scène de crime marquante",
+      "Enquêteur et méthodes",
+      "Système d'indices",
+      "Fausses pistes créées",
+      "Révélations progressives",
       "Climax et résolution"
     ]
   },
@@ -216,32 +320,54 @@ L'art du thriller, c'est de garder le lecteur sur le fil du rasoir. Comment cré
     genre: 'Fantasy',
     targetWords: 90000,
     emoji: '🏰',
-    fullPrompt: `Bonjour ! Je rêve de créer un univers de fantasy épique d'environ 90 000 mots avec un monde riche, de la magie, et une aventure inoubliable.
+    fullPrompt: `🏰 **MISSION ÉCRITURE : Épopée fantastique**
 
-Ma vision :
-- Construire un monde fantastique cohérent et immersif
-- Créer un système de magie original et logique
-- Développer des personnages héroïques attachants
-- Raconter une quête épique avec de vrais enjeux
-- Intégrer créatures mystiques et civilisations fantastiques
+Bienvenue dans la création d'univers ! Votre monde fantastique va prendre vie dès maintenant.
 
-Sous-genres possibles : [high fantasy, urban fantasy, dark fantasy, fantasy épique, etc.]
+**🌟 EXERCICE IMMÉDIAT : Votre monde + héros (500 mots)**
 
-J'ai besoin de votre expertise pour :
-1. Construire les règles et géographie de mon monde
-2. Développer un système de magie cohérent
-3. Créer le héros et sa quête principale
-4. Concevoir les antagonistes et obstacles
-5. Équilibrer action, développement de personnages et world-building
+Créez MAINTENANT l'ouverture de votre fantasy :
 
-La fantasy permet tout, mais paradoxalement demande beaucoup de cohérence. Comment créer un monde à la fois original et crédible ? Commençons par l'univers - quel type de monde fantasy m'inspire ?`,
+**• Votre héros** (nom, âge, don/faiblesse magique)
+**• Le monde** (lieu + règle magique principale)
+**• L'appel à l'aventure** (menace/quête qui commence)
+**• Premier pouvoir** (magie en action dès page 1)
+
+**🎯 COMMENCEZ PAR :**
+"Dans le royaume de [nom], où [règle magique], [héros] venait de découvrir que [pouvoir/secret]. Mais [danger] approchait..."
+
+**✨ APRÈS VOTRE OUVERTURE :**
+
+✅ **Système magique** (règles, limites, coût)
+✅ **Géographie du monde** (royaumes, races, langues)
+✅ **Quête principale** (enjeu + 5 étapes)
+✅ **Compagnons** (groupe d'aventuriers)
+✅ **Antagoniste** (seigneur noir + motivations)
+✅ **Créatures fantastiques** (bestiaire unique)
+
+**🗺️ WORLD-BUILDING EXPRESS :**
+- **Magie :** Comment ça marche ? Qui peut l'utiliser ?
+- **Races :** Humains + 2-3 peuples fantastiques
+- **Histoire :** 1 événement majeur du passé
+- **Conflit :** Guerre/menace qui unit les héros
+
+**⚔️ STRUCTURE FANTASY :**
+1. **Monde ordinaire** (avant l'aventure)
+2. **Appel** (quête commence)
+3. **Voyage** (découvertes + épreuves)
+4. **Alliés/Ennemis** (formation du groupe)
+5. **Bataille finale** (magie vs magie)
+
+**🐉 RÈGLE D'OR :** Cohérence > originalité. Votre monde doit avoir sa logique interne.
+
+**Votre mission immédiate : Nommez votre héros et décrivez son premier sort !** ⚡`,
     suggestedStructure: [
-      "Monde fantastique et ses règles",
-      "Système de magie et créatures",
-      "Héros et sa quête principale",
-      "Alliés, ennemis et obstacles",
-      "Aventures et défis progressifs",
-      "Bataille finale et résolution épique"
+      "Héros et monde fantastique",
+      "Système magique cohérent",
+      "Quête et enjeux épiques",
+      "Compagnons d'aventure",
+      "Créatures et antagonistes",
+      "Bataille finale magique"
     ]
   },
   {
@@ -251,33 +377,57 @@ La fantasy permet tout, mais paradoxalement demande beaucoup de cohérence. Comm
     genre: 'Jeunesse',
     targetWords: 3000,
     emoji: '🧸',
-    fullPrompt: `Salut ! Je veux créer un livre pour enfants d'environ 3000 mots qui va les captiver tout en leur transmettant de belles valeurs.
+    fullPrompt: `🧸 **MISSION ÉCRITURE : Histoire magique pour enfants**
 
-Mon objectif :
-- Raconter une histoire que les enfants adorent
-- Transmettre des valeurs positives naturellement
-- Utiliser un vocabulaire adapté à l'âge
-- Créer des personnages attachants et relatable
-- Stimuler l'imagination et la créativité
+Les enfants méritent des histoires extraordinaires ! Créons ensemble un livre qu'ils vont adorer.
 
-Tranches d'âge possibles : [3-5 ans, 6-8 ans, 9-12 ans]
-Thèmes possibles : [amitié, courage, différence, famille, environnement, confiance en soi, etc.]
+**🌈 EXERCICE IMMÉDIAT : Votre premier chapitre (300 mots)**
 
-Aidez-moi à :
-1. Choisir la tranche d'âge et adapter le style
-2. Créer des personnages que les enfants aiment
-3. Développer une histoire simple mais engageante
-4. Intégrer le message éducatif avec subtilité
-5. Prévoir les descriptions pour les illustrations
+Écrivez MAINTENANT l'ouverture avec cette recette testée :
 
-Les enfants sont un public exigeant - ils sentent tout de suite si c'est authentique. Comment créer une histoire qui les transporte vraiment ? Commençons par définir l'âge des lecteurs et le message que je veux transmettre.`,
+**• Héros enfant** (âge + 1 trait amusant)
+**• Problème simple** (peur, conflit, défi)
+**• Élément magique/spécial** (animal parlant, objet, pouvoir)
+**• Émotion positive** (curiosité, courage, amitié)
+
+**🎯 COMMENCEZ PAR :**
+"[Prénom] était un petit [garçon/fille] de [âge] ans qui [trait spécial]. Ce matin-là, il/elle découvrit quelque chose d'extraordinaire : [élément magique]..."
+
+**📚 APRÈS VOTRE DÉBUT :**
+
+✅ **Message principal** (courage, amitié, confiance, etc.)
+✅ **Péripéties amusantes** (3-4 mini-aventures)
+✅ **Résolution positive** (problème résolu + leçon)
+✅ **Vocabulaire adapté** (selon l'âge cible)
+✅ **Descriptions visuelles** (pour les illustrations)
+
+**🎨 TECHNIQUES ENFANTS :**
+- Phrases courtes et rythmées
+- Répétitions amusantes
+- Dialogues simples
+- Émotions claires
+- Fin rassurante
+
+**📖 STRUCTURE JEUNESSE :**
+1. **Présentation** (héros + situation)
+2. **Problème** (défi à relever)
+3. **Aventure** (tentatives + obstacles)
+4. **Solution** (comment ça marche)
+5. **Célébration** (fierté + leçon)
+
+**👶 TRANCHES D'ÂGE :**
+- **3-5 ans :** 500 mots, phrases simples
+- **6-8 ans :** 1500 mots, plus d'action
+- **9-12 ans :** 3000 mots, émotions complexes
+
+**Votre mission immédiate : Présentez votre petit héros en 2 phrases attachantes !** 🌟`,
     suggestedStructure: [
-      "Âge cible et niveau de lecture",
-      "Personnages attachants et relatable",
-      "Message ou valeur à transmettre",
-      "Aventure ou conflit adapté à l'âge",
-      "Résolution positive et apprentissage",
-      "Éléments visuels et descriptions"
+      "Petit héros attachant",
+      "Problème adapté à l'âge",
+      "Aventure et péripéties",
+      "Message positif intégré",
+      "Résolution rassurante",
+      "Vocabulaire et style adaptés"
     ]
   },
   {
@@ -287,32 +437,55 @@ Les enfants sont un public exigeant - ils sentent tout de suite si c'est authent
     genre: 'Récit de voyage',
     targetWords: 45000,
     emoji: '🗺️',
-    fullPrompt: `Bonjour ! Je veux transformer mes expériences de voyage en un récit captivant d'environ 45 000 mots qui fera voyager les lecteurs depuis leur salon.
+    fullPrompt: `🗺️ **MISSION ÉCRITURE : Carnet d'aventures**
 
-Ma vision :
-- Partager mes découvertes et aventures authentiquement  
-- Mélanger descriptions vivantes et réflexions personnelles
-- Transmettre la magie des rencontres culturelles
-- Inspirer d'autres à voyager ou voir le monde différemment
-- Créer un livre qu'on a envie de dévorer
+Vos voyages sont des trésors d'histoires ! Transformons vos souvenirs en récit captivant qui fera rêver vos lecteurs.
 
-Destinations possibles : [pays spécifique, tour du monde, pèlerinage, voyage intérieur, exploration urbaine, etc.]
+**✈️ EXERCICE IMMÉDIAT : Votre première aventure (400 mots)**
 
-Votre aide me sera précieuse pour :
-1. Structurer mes souvenirs de voyage en récit cohérent
-2. Équilibrer anecdotes, descriptions et réflexions
-3. Donner vie aux lieux et aux rencontres
-4. Transmettre l'émotion et la transformation personnelle
-5. Créer un fil conducteur au-delà de la chronologie
+Racontez MAINTENANT votre moment de voyage le plus marquant :
 
-Un bon récit de voyage ne raconte pas juste "ce qui s'est passé" mais transforme le lecteur. Comment faire vivre mes aventures sur papier ? Commençons par le voyage qui m'a le plus marqué.`,
+**• Le lieu** (pays, ville, paysage précis)
+**• L'instant T** (que faisiez-vous à ce moment ?)
+**• La surprise/découverte** (inattendu qui vous a marqué)
+**• Vos sensations** (5 sens + émotions)
+**• La leçon** (ce que ça vous a appris)
+
+**🎯 COMMENCEZ PAR :**
+"J'étais à [lieu précis] quand [événement]. Jamais je n'avais imaginé que [découverte/sensation]..."
+
+**🌍 APRÈS VOTRE PREMIÈRE HISTOIRE :**
+
+✅ **Itinéraire complet** (chronologie de votre voyage)
+✅ **Rencontres marquantes** (locals, voyageurs, guides)
+✅ **Découvertes culturelles** (traditions, nourriture, art)
+✅ **Galères et anecdotes** (ratés qui font les meilleures histoires)
+✅ **Transformation personnelle** (comment le voyage vous a changé)
+
+**📝 TECHNIQUES RÉCIT VOYAGE :**
+- Détails sensoriels (odeurs, bruits, textures)
+- Dialogues avec les locaux
+- Comparaisons avec votre culture
+- Moments d'émerveillement ET de difficulté
+- Réflexions personnelles
+
+**🗂️ STRUCTURE VOYAGE :**
+1. **Départ** (motivations + préparatifs)
+2. **Premières découvertes** (choc culturel)
+3. **Immersion** (vraies rencontres)
+4. **Aventures** (anecdotes marquantes)
+5. **Retour** (ce que vous ramenez)
+
+**💡 ASTUCE PRO :** Alternez récit d'action et réflexion personnelle.
+
+**Votre mission immédiate : Décrivez votre moment "WOW" de voyage en 100 mots !** 🌟`,
     suggestedStructure: [
-      "Destination(s) et contexte du voyage",
-      "Préparatifs et attentes",
-      "Découvertes et premières impressions",
-      "Rencontres et échanges culturels",
-      "Défis et apprentissages du voyage",
-      "Retour et transformation personnelle"
+      "Moment marquant de voyage",
+      "Itinéraire et contexte",
+      "Rencontres humaines",
+      "Découvertes culturelles",
+      "Aventures et anecdotes",
+      "Transformation personnelle"
     ]
   },
   {
@@ -322,32 +495,59 @@ Un bon récit de voyage ne raconte pas juste "ce qui s'est passé" mais transfor
     genre: 'Gastronomie',
     targetWords: 35000,
     emoji: '👨‍🍳',
-    fullPrompt: `Salut ! Je veux créer un livre de cuisine d'environ 35 000 mots qui ne soit pas qu'un simple recueil de recettes, mais qui raconte une histoire culinaire.
+    fullPrompt: `👨‍🍳 **MISSION ÉCRITURE : Livre de cuisine avec âme**
 
-Mon approche :
-- Partager mes recettes favorites avec leur histoire
-- Transmettre ma passion pour la cuisine
-- Donner des conseils pratiques et astuces de chef
-- Créer un livre qu'on lit autant qu'on utilise
-- Mélanger technique culinaire et storytelling
+Vos recettes racontent une histoire ! Créons un livre de cuisine qu'on lit autant qu'on utilise.
 
-Styles possibles : [cuisine familiale, cuisine du monde, pâtisserie, cuisine healthy, street food, cuisine de saison, etc.]
+**🍳 EXERCICE IMMÉDIAT : Votre recette signature (400 mots)**
 
-J'aimerais votre aide pour :
-1. Définir mon style culinaire et philosophie
-2. Structurer les recettes par thèmes cohérents
-3. Raconter l'histoire derrière chaque plat
-4. Intégrer conseils techniques et astuces
-5. Créer des menus et associations de saveurs
+Rédigez MAINTENANT votre plat fétiche avec cette approche :
 
-Un livre de cuisine réussi donne envie de cuisiner ET de lire. Comment transformer mes recettes en expérience complète ? Commençons par identifier ma signature culinaire unique.`,
+**• L'histoire** (d'où vient cette recette ? souvenir lié ?)
+**• Les ingrédients** (liste précise + conseils choix)
+**• La méthode** (étapes claires + astuces de chef)
+**• L'anecdote** (ratage mémorable ou succès fou)
+**• Pourquoi vous l'aimez** (émotions associées)
+
+**🎯 COMMENCEZ PAR :**
+"Cette recette de [plat] me vient de [origine/personne]. À chaque fois que je la prépare, [émotion/souvenir]..."
+
+**📖 APRÈS VOTRE PREMIÈRE RECETTE :**
+
+✅ **Votre philosophie culinaire** (cuisine simple ? gastronomique ?)
+✅ **30 recettes organisées** (entrées, plats, desserts)
+✅ **Techniques de base** (5 gestes fondamentaux)
+✅ **Astuces de chef** (secrets pour réussir)
+✅ **Menus complets** (associations parfaites)
+✅ **Photos et descriptions** (donner envie visuellement)
+
+**🔥 STRUCTURE RECETTE PARFAITE :**
+- **Intro émotionnelle** (pourquoi cette recette ?)
+- **Ingrédients précis** (quantités + conseils d'achat)
+- **Méthode détaillée** (étape par étape)
+- **Astuces pro** (comment l'améliorer)
+- **Variantes** (adaptations possibles)
+
+**👩‍🍳 TECHNIQUES ÉCRITURE CULINAIRE :**
+- Vocabulaire sensoriel (croustillant, fondant...)
+- Métaphores gourmandes
+- Conseils pratiques à chaque étape
+- Anticipation des problèmes
+
+**🍽️ ORGANISATION LIVRE :**
+1. **Votre histoire culinaire** (comment vous cuisinez)
+2. **Bases** (techniques fondamentales)
+3. **Recettes par thème** (saisons, occasions...)
+4. **Menus complets** (harmonies parfaites)
+
+**Votre mission immédiate : Racontez l'histoire de VOTRE plat préféré !** 🌟`,
     suggestedStructure: [
-      "Philosophie culinaire et approche",
-      "Recettes de base et techniques fondamentales",
-      "Recettes par catégorie ou saison",
-      "Histoires et anecdotes culinaires",
-      "Conseils et astuces de chef",
-      "Menus et occasions spéciales"
+      "Recette signature avec histoire",
+      "Philosophie culinaire personnelle",
+      "Techniques de base illustrées",
+      "Recettes organisées par thème",
+      "Astuces et secrets de chef",
+      "Menus et accords parfaits"
     ]
   },
   {
@@ -357,33 +557,57 @@ Un livre de cuisine réussi donne envie de cuisiner ET de lire. Comment transfor
     genre: 'Poésie',
     targetWords: 15000,
     emoji: '🎭',
-    fullPrompt: `Bonjour ! Je ressens le besoin de créer un recueil de poésie d'environ 15 000 mots qui touchera les âmes et explorera les profondeurs de l'émotion humaine.
+    fullPrompt: `🎭 **MISSION ÉCRITURE : Recueil poétique**
 
-Ma vision poétique :
-- Explorer un thème central qui me passionne
-- Créer une progression émotionnelle dans le recueil
-- Développer ma voix poétique unique
-- Jouer avec les formes, rythmes et sonorités
-- Toucher les lecteurs au cœur
+Votre voix poétique n'attend que de s'exprimer ! Libérons ensemble les mots qui habitent votre âme.
 
-Thèmes possibles : [amour, perte, nature, identité, société, spiritualité, transformation, mémoire, etc.]
-Styles possibles : [vers libre, sonnets, haïkus, prose poétique, slam, etc.]
+**✨ EXERCICE IMMÉDIAT : Votre premier poème (150 mots)**
 
-Aidez-moi à :
-1. Identifier le thème central fédérateur
-2. Explorer les émotions et images associées
-3. Expérimenter différentes formes poétiques
-4. Organiser les poèmes en progression cohérente
-5. Affiner le rythme et la musicalité
+Écrivez MAINTENANT un poème libre sur votre émotion du moment :
 
-La poésie, c'est l'art de dire l'ineffable avec précision. Comment transformer mes émotions en vers qui résonnent universellement ? Explorons ensemble le thème qui me hante et demande à s'exprimer.`,
+**• Émotion centrale** (joie, mélancolie, colère, amour...)
+**• Images fortes** (3-4 métaphores personnelles)
+**• Rythme personnel** (court/long, saccadé/fluide)
+**• Fin marquante** (chute qui résonne)
+
+**🎯 COMMENCEZ PAR :**
+Choisissez UNE émotion forte et laissez les mots venir naturellement. Pas de contrainte de forme - juste votre vérité.
+
+**📝 APRÈS VOTRE PREMIER POÈME :**
+
+✅ **Thème du recueil** (fil conducteur émotionnel)
+✅ **30-40 poèmes** (variété de formes et longueurs)
+✅ **Organisation poétique** (progression dans les émotions)
+✅ **Votre style unique** (sonorités, images récurrentes)
+✅ **Expérimentation** (haïkus, alexandrins, vers libres...)
+
+**🎨 TECHNIQUES POÉTIQUES :**
+- **Images sensorielles** (couleurs, sons, textures)
+- **Métaphores personnelles** (comparaisons uniques)
+- **Rythme et sonorités** (répétitions, allitérations)
+- **Émotions brutes** (authenticité avant perfection)
+
+**📚 STRUCTURE RECUEIL :**
+1. **Ouverture** (poème d'introduction au thème)
+2. **Exploration** (variations sur l'émotion centrale)
+3. **Intensité** (moments les plus forts)
+4. **Résolution** (apaisement ou transformation)
+5. **Fermeture** (poème de conclusion)
+
+**🎭 STYLES À EXPLORER :**
+- Vers libres (liberté totale)
+- Haïkus (capture d'instants)
+- Sonnets (contrainte créative)
+- Prose poétique (entre prose et vers)
+
+**Votre mission immédiate : Écrivez 3 vers sur ce qui vous touche MAINTENANT !** 💫`,
     suggestedStructure: [
+      "Premier poème personnel",
       "Thème central du recueil",
-      "Exploration des émotions et images",
-      "Différents styles et formes poétiques",
-      "Organisation thématique des poèmes",
-      "Travail sur le rythme et la sonorité",
-      "Cohérence et progression du recueil"
+      "Exploration de différentes formes",
+      "Organisation émotionnelle",
+      "Style et voix uniques",
+      "Progression poétique cohérente"
     ]
   },
   {
@@ -393,32 +617,60 @@ La poésie, c'est l'art de dire l'ineffable avec précision. Comment transformer
     genre: 'Essai',
     targetWords: 40000,
     emoji: '🤔',
-    fullPrompt: `Bonjour ! Je veux écrire un essai approfondi d'environ 40 000 mots sur un sujet qui me passionne et qui mérite d'être exploré avec rigueur et créativité.
+    fullPrompt: `🤔 **MISSION ÉCRITURE : Essai d'idées**
 
-Mon ambition :
-- Apporter un éclairage nouveau sur un sujet important
-- Développer une argumentation solide et nuancée
-- Mélanger réflexion personnelle et recherche approfondie
-- Rendre accessible des idées complexes
-- Contribuer au débat intellectuel contemporain
+Vos réflexions méritent d'être partagées ! Transformons votre pensée en contribution intellectuelle marquante.
 
-Sujets possibles : [société, technologie, philosophie, art, politique, environnement, psychologie, futur, etc.]
+**💭 EXERCICE IMMÉDIAT : Votre thèse principale (400 mots)**
 
-Votre expertise m'aiderait à :
-1. Définir précisément mon sujet et angle d'approche
-2. Structurer ma réflexion de manière convaincante
-3. Équilibrer arguments rationnels et touches personnelles
-4. Intégrer exemples concrets et références pertinentes
-5. Développer un style d'écriture engageant
+Exposez MAINTENANT votre idée centrale avec force :
 
-Un bon essai ne donne pas juste des réponses, il pose les bonnes questions. Comment transformer ma passion pour un sujet en contribution intellectuelle significative ? Explorons le sujet qui m'anime vraiment.`,
+**• Votre conviction** (ce en quoi vous croyez fermement)
+**• Le problème actuel** (ce qui dysfonctionne aujourd'hui)
+**• Votre solution/vision** (comment vous voyez les choses)
+**• Premier argument** (preuve ou exemple concret)
+
+**🎯 COMMENCEZ PAR :**
+"Contrairement à ce que pensent la plupart des gens, [votre thèse]. Voici pourquoi cette idée peut changer [domaine/société]..."
+
+**📖 APRÈS VOTRE THÈSE :**
+
+✅ **Plan d'argumentation** (5-6 arguments progressifs)
+✅ **Preuves et exemples** (statistiques, cas concrets)
+✅ **Objections anticipées** (contre-arguments + réponses)
+✅ **Témoignages d'experts** (citations qui soutiennent)
+✅ **Implications pratiques** (conséquences de votre idée)
+✅ **Appel à l'action** (que peut faire le lecteur ?)
+
+**🏗️ STRUCTURE ESSAI EFFICACE :**
+1. **Constat** (état actuel du problème)
+2. **Thèse** (votre position claire)
+3. **Arguments** (preuves progressives)
+4. **Réfutation** (traitement des objections)
+5. **Vision** (monde selon vos idées)
+6. **Action** (comment y arriver)
+
+**✍️ STYLE ESSAI ENGAGEANT :**
+- Anecdotes personnelles
+- Exemples concrets et actuels
+- Questions rhétoriques
+- Métaphores éclairantes
+- Ton personnel mais rigoureux
+
+**🔍 RECHERCHE NÉCESSAIRE :**
+- 20 sources minimum (livres, études, articles)
+- 5 experts à citer
+- 10 exemples concrets
+- Statistiques récentes
+
+**Votre mission immédiate : Résumez votre conviction principale en 1 phrase percutante !** 🎯`,
     suggestedStructure: [
-      "Définition du sujet et angle d'approche",
-      "Recherche et collecte d'arguments",
-      "Plan détaillé de l'argumentation",
-      "Développement chapitre par chapitre",
-      "Exemples et illustrations",
-      "Conclusion et synthèse"
+      "Thèse principale claire",
+      "Arguments structurés progressifs",
+      "Preuves et exemples concrets",
+      "Traitement des objections",
+      "Vision et implications",
+      "Appel à l'action concret"
     ]
   }
 ];
@@ -436,20 +688,37 @@ export const getAllGenres = (): string[] => {
   return [...new Set(bookTemplates.map(template => template.genre))];
 };
 
-// Fonction pour envoyer le prompt initial d'un template
-export const sendTemplateInitialPrompt = async (
-  templateId: string, 
-  bookId: string, 
-  userId: string,
-  webhookFunction: (bookId: string, message: string, userId: string) => Promise<void>
-) => {
-  const template = getTemplateById(templateId);
-  if (!template) {
-    throw new Error(`Template ${templateId} not found`);
-  }
-
-  // Envoyer le prompt complet
-  await webhookFunction(bookId, template.fullPrompt, userId);
+// Fonction pour valider qu'un prompt est directif
+export const validatePromptIsActionable = (prompt: string): boolean => {
+  const actionWords = [
+    'écrivez maintenant', 'commencez par', 'votre mission', 
+    'exercice immédiat', 'rédigez', 'créez maintenant',
+    'tapez', 'go !', 'allez-y'
+  ];
   
-  return template;
+  return actionWords.some(word => 
+    prompt.toLowerCase().includes(word.toLowerCase())
+  );
+};
+
+// Template pour prompts follow-up (après le premier message)
+export const getFollowUpPrompt = (templateId: string, userProgress: string) => {
+  const template = getTemplateById(templateId);
+  if (!template) return null;
+
+  return `🔥 **EXCELLENT DÉBUT !**
+
+Votre ${userProgress} montre que vous êtes lancé ! Continuons sur cette lancée.
+
+**🎯 PROCHAINE ÉTAPE IMMÉDIATE :**
+
+${template.suggestedStructure[1]} - Développons maintenant cet aspect en détail.
+
+**✍️ ACTION CONCRÈTE :**
+Écrivez les 300 mots suivants en vous concentrant sur [aspect spécifique selon le template].
+
+**💡 CONSEIL D'EXPERT :**
+[Conseil spécifique selon le genre du livre]
+
+Postez votre nouveau texte dès qu'il est prêt - je vous guide étape par étape ! 🚀`;
 };
