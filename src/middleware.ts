@@ -1,4 +1,4 @@
-// src/middleware.ts (version corrigée)
+// src/middleware.ts (version corrigée pour les nouvelles routes)
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -33,8 +33,8 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Routes protégées
-  const protectedRoutes = ['/dashboard', '/chat']
+  // Routes protégées - mise à jour pour les livres
+  const protectedRoutes = ['/dashboard', '/books']
   const isProtectedRoute = protectedRoutes.some(route => 
     request.nextUrl.pathname.startsWith(route)
   )

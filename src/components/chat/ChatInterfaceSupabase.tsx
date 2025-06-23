@@ -1,4 +1,4 @@
-// src/components/chat/ChatInterfaceSupabase.tsx
+// 5. Corriger src/components/chat/ChatInterfaceSupabase.tsx
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -7,22 +7,14 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { createClient } from '@/lib/supabase';
 import MessageListSupabase from '@/components/chat/MessageListSupabase';
 import MessageInputSupabase from '@/components/chat/MessageInputSupabase';
-
-// Add type for Supabase error
-type SupabaseError = {
-  message: string;
-  details?: string;
-  hint?: string;
-  code?: string;
-};
 import { Button } from '@/components/ui/Button';
 
 interface Message {
   id: string;
   content: string;
-  sender: 'user' | 'assistant';
-  timestamp: string;
-  session_id: string;
+  title: string;
+  created_at: string;
+  book_id: string;
 }
 
 interface Book {
@@ -69,58 +61,28 @@ export default function ChatInterfaceSupabase({ bookId }: ChatInterfaceSupabaseP
       setBook(bookData);
     } catch (error: unknown) {
       console.error('Erreur:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          message: error.message,
-          name: error.name,
-          stack: error.stack
-        });
-      }
       router.push('/dashboard');
     }
   }, [bookId, user, router, supabase]);
 
   const fetchMessages = useCallback(async () => {
-    if (!user) {
-      console.log('No user, skipping message fetch');
-      return;
-    }
+    if (!user) return;
 
-    console.log('Fetching messages for bookId:', bookId);
-    
     try {
-      const { data: messagesData, error: messagesError, status } = await supabase
-        .from('chat_messages')
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('book_chat')
         .select('*')
-        .eq('session_id', bookId)
-        .order('timestamp', { ascending: true });
+        .eq('book_id', bookId)
+        .order('created_at', { ascending: true });
 
-      console.log('Supabase query status:', status);
-      
       if (messagesError) {
-        console.error('Error fetching messages:', {
-          message: messagesError.message,
-          details: messagesError.details,
-          hint: messagesError.hint,
-          code: messagesError.code
-        });
+        console.error('Error fetching messages:', messagesError);
         return;
       }
 
-      console.log('Fetched messages:', messagesData);
       setMessages(messagesData || []);
     } catch (error: unknown) {
-      console.error('Unexpected error in fetchMessages:');
-      if (error instanceof Error) {
-        console.error({
-          error: error.toString(),
-          errorName: error.name,
-          errorMessage: error.message,
-          errorStack: error.stack
-        });
-      } else {
-        console.error('Non-Error object thrown:', error);
-      }
+      console.error('Unexpected error in fetchMessages:', error);
     } finally {
       setLoading(false);
     }
@@ -131,7 +93,7 @@ export default function ChatInterfaceSupabase({ bookId }: ChatInterfaceSupabaseP
     fetchMessages();
   }, [fetchBook, fetchMessages]);
 
-  // Configuration du temps réel avec gestion d'erreur améliorée
+  // Configuration du temps réel
   useEffect(() => {
     if (!user || !bookId) return;
 
@@ -143,14 +105,13 @@ export default function ChatInterfaceSupabase({ bookId }: ChatInterfaceSupabaseP
       try {
         setWsStatus('connecting');
         
-        // Nettoyer l'ancien channel s'il existe
         if (channelRef.current) {
           supabase.removeChannel(channelRef.current);
           channelRef.current = null;
         }
 
         const channel = supabase
-          .channel(`messages_${bookId}`, {
+          .channel(`book_messages_${bookId}`, {
             config: {
               broadcast: { self: false },
               presence: { key: user.id }
@@ -161,14 +122,13 @@ export default function ChatInterfaceSupabase({ bookId }: ChatInterfaceSupabaseP
             {
               event: 'INSERT',
               schema: 'public',
-              table: 'chat_messages',
-              filter: `session_id=eq.${bookId}`,
+              table: 'book_chat',
+              filter: `book_id=eq.${bookId}`,
             },
             (payload) => {
               console.log('Nouveau message reçu:', payload);
               const newMessage = payload.new as Message;
               setMessages((prev) => {
-                // Éviter les doublons
                 if (prev.some(msg => msg.id === newMessage.id)) {
                   return prev;
                 }
@@ -181,21 +141,16 @@ export default function ChatInterfaceSupabase({ bookId }: ChatInterfaceSupabaseP
             
             if (status === 'SUBSCRIBED') {
               setWsStatus('connected');
-              retryCount = 0; // Reset retry count on successful connection
+              retryCount = 0;
             } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
               setWsStatus('disconnected');
               
-              // Retry logic
               if (retryCount < maxRetries) {
                 retryCount++;
                 console.log(`Tentative de reconnexion ${retryCount}/${maxRetries}...`);
                 timeoutId = setTimeout(() => {
                   setupRealtimeSubscription();
-                }, 2000 * retryCount); // Exponential backoff
-              } else {
-                console.log('Abandon de la reconnexion WebSocket, polling de secours activé');
-                // Fallback to polling
-                startPolling();
+                }, 2000 * retryCount);
               }
             } else if (status === 'CLOSED') {
               setWsStatus('disconnected');
@@ -206,35 +161,13 @@ export default function ChatInterfaceSupabase({ bookId }: ChatInterfaceSupabaseP
       } catch (error) {
         console.error('Erreur configuration WebSocket:', error);
         setWsStatus('disconnected');
-        
-        // Fallback to polling
-        if (retryCount < maxRetries) {
-          retryCount++;
-          timeoutId = setTimeout(() => {
-            setupRealtimeSubscription();
-          }, 2000 * retryCount);
-        } else {
-          startPolling();
-        }
       }
     };
 
-    // Polling de secours si WebSocket échoue
-    let pollingInterval: NodeJS.Timeout;
-    
-    const startPolling = () => {
-      console.log('Démarrage du polling de secours...');
-      pollingInterval = setInterval(() => {
-        fetchMessages();
-      }, 3000); // Vérifier les nouveaux messages toutes les 3 secondes
-    };
-
-    // Démarrer la subscription WebSocket
     setupRealtimeSubscription();
 
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
-      if (pollingInterval) clearInterval(pollingInterval);
       
       if (channelRef.current) {
         try {
@@ -245,95 +178,85 @@ export default function ChatInterfaceSupabase({ bookId }: ChatInterfaceSupabaseP
         channelRef.current = null;
       }
     };
-  }, [bookId, user, supabase, fetchMessages]);
+  }, [bookId, user, supabase]);
 
-  // src/components/chat/ChatInterfaceSupabase.tsx - Gestion des réponses n8n
+  const handleSendMessage = async (message: string) => {
+    if (!user) return;
 
-const handleSendMessage = async (message: string) => {
-  if (!user) return;
+    setSending(true);
+    try {
+      const newMessage = {
+        book_id: bookId,
+        title: 'Message utilisateur',
+        content: message,
+      };
 
-  setSending(true);
-  try {
-    // Créer le message utilisateur
-    const userMessage: Omit<Message, 'id'> = {
-      content: message,
-      sender: 'user',
-      timestamp: new Date().toISOString(),
-      session_id: bookId,
-    };
+      const { data: savedMessage, error: messageError } = await supabase
+        .from('book_chat')
+        .insert(newMessage)
+        .select()
+        .single();
 
-    // Sauvegarder le message en base
-    const { data: savedMessage, error: messageError } = await supabase
-      .from('chat_messages')
-      .insert(userMessage)
-      .select()
-      .single();
+      if (messageError) {
+        console.error('Erreur sauvegarde message:', messageError);
+        return;
+      }
 
-    if (messageError) {
-      console.error('Erreur sauvegarde message:', messageError);
-      return;
+      if (wsStatus !== 'connected') {
+        setMessages(prev => [...prev, savedMessage]);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+    } finally {
+      setSending(false);
     }
+  };
 
-    // Si WebSocket ne fonctionne pas, ajouter le message manuellement
-    if (wsStatus !== 'connected') {
-      setMessages(prev => [...prev, savedMessage]);
-    }
-  } catch (error) {
-    console.error('Error sending message:', error);
-  } finally {
-    setSending(false);
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-gray-500">Chargement de la conversation...</div>
+      </div>
+    );
   }
-};
 
-if (loading) {
   return (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="text-gray-500">Chargement de la conversation...</div>
-    </div>
-  );
-}
-
-return (
-  <div className="flex flex-col h-full">
-    {/* Header */}
-    <div className="border-b border-gray-200 p-4 bg-white">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">
-            {book?.title || 'Conversation'}
-          </h1>
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
-            <span>{messages.length} message{messages.length !== 1 ? 's' : ''}</span>
-            <span>•</span>
-            <div className="flex items-center space-x-1">
-              <div className={`w-2 h-2 rounded-full ${
-                wsStatus === 'connected' ? 'bg-green-500' : 
-                wsStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
-              }`}></div>
-              <span className="text-xs">
-                {wsStatus === 'connected' ? 'Temps réel' : 
-                 wsStatus === 'connecting' ? 'Connexion...' : 'Mode polling'}
-              </span>
+    <div className="flex flex-col h-full">
+      <div className="border-b border-gray-200 p-4 bg-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">
+              {book?.title || 'Conversation'}
+            </h1>
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <span>{messages.length} message{messages.length !== 1 ? 's' : ''}</span>
+              <span>•</span>
+              <div className="flex items-center space-x-1">
+                <div className={`w-2 h-2 rounded-full ${
+                  wsStatus === 'connected' ? 'bg-green-500' : 
+                  wsStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
+                }`}></div>
+                <span className="text-xs">
+                  {wsStatus === 'connected' ? 'Temps réel' : 
+                   wsStatus === 'connecting' ? 'Connexion...' : 'Mode polling'}
+                </span>
+              </div>
             </div>
+            <Button
+              variant="outline"
+              onClick={() => router.push('/dashboard')}
+            >
+              Retour au dashboard
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => router.push('/dashboard')}
-          >
-            Retour au dashboard
-          </Button>
         </div>
       </div>
+
+      <MessageListSupabase messages={messages} />
+      <MessageInputSupabase
+        onSendMessage={handleSendMessage}
+        disabled={sending}
+      />
     </div>
-
-    {/* Messages */}
-    <MessageListSupabase messages={messages} />
-
-    {/* Input */}
-    <MessageInputSupabase
-      onSendMessage={handleSendMessage}
-      disabled={sending}
-    />
-  </div>
-);
+  );
 }

@@ -1,44 +1,39 @@
-// src/app/api/chat/[sessionId]/route.ts
+// 2. Corriger src/app/api/books/[bookId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { redis } from '@/lib/redis';
-import { generateId } from '@/lib/utils';
-import { Message } from '@/types/chat';
+import { createClient } from '@/lib/supabase';
 
-interface RouteParams {
-  params: {
-    sessionId: string;
-  };
+interface RouteContext {
+  params: Promise<{
+    bookId: string;
+  }>;
 }
 
 export async function GET(
   request: NextRequest,
-  { params }: RouteParams
+  context: RouteContext
 ) {
   try {
-    const userId = request.headers.get('x-user-id');
-    const { sessionId } = params;
+    const { bookId } = await context.params;
+    const supabase = createClient();
     
-    if (!userId) {
+    // Récupérer les messages du livre
+    const { data: messages, error } = await supabase
+      .from('book_chat')
+      .select('*')
+      .eq('book_id', bookId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Erreur récupération messages:', error);
       return NextResponse.json(
-        { error: 'Non autorisé' },
-        { status: 401 }
+        { error: 'Erreur récupération messages' },
+        { status: 500 }
       );
     }
 
-    // Verify session belongs to user
-    const session = await redis.getChatSession(sessionId);
-    if (!session || session.userId !== userId) {
-      return NextResponse.json(
-        { error: 'Session non trouvée' },
-        { status: 404 }
-      );
-    }
-
-    const messages = await redis.getSessionMessages(sessionId);
-    
-    return NextResponse.json({ messages, session });
+    return NextResponse.json({ messages: messages || [] });
   } catch (error) {
-    console.error('Get messages error:', error);
+    console.error('Erreur API:', error);
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
       { status: 500 }
@@ -48,19 +43,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: RouteParams
+  context: RouteContext
 ) {
   try {
-    const userId = request.headers.get('x-user-id');
-    const { sessionId } = params;
-    
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Non autorisé' },
-        { status: 401 }
-      );
-    }
-
+    const { bookId } = await context.params;
     const body = await request.json();
     const { message } = body;
 
@@ -71,34 +57,37 @@ export async function POST(
       );
     }
 
-    // Verify session belongs to user
-    const session = await redis.getChatSession(sessionId);
-    if (!session || session.userId !== userId) {
+    const supabase = createClient();
+    
+    // Sauvegarder le message utilisateur
+    const userMessage = {
+      id: crypto.randomUUID(),
+      book_id: bookId,
+      title: 'Message utilisateur',
+      content: message,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: messageError } = await supabase
+      .from('book_chat')
+      .insert(userMessage);
+
+    if (messageError) {
+      console.error('Erreur sauvegarde message:', messageError);
       return NextResponse.json(
-        { error: 'Session non trouvée' },
-        { status: 404 }
+        { error: 'Erreur sauvegarde message' },
+        { status: 500 }
       );
     }
 
-    // Save user message
-    const userMessage: Message = {
-      id: generateId(),
-      content: message,
-      sender: 'user',
-      timestamp: new Date(),
-      sessionId,
-    };
-
-    await redis.saveMessage(userMessage);
-
-    // Send to n8n webhook
+    // Envoyer à n8n
     try {
-      const webhookUrl = process.env.N8N_WEBHOOK_URL;
+      const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL;
       if (webhookUrl) {
         const webhookPayload = {
-          sessionId,
+          bookId,
           message,
-          userId,
           timestamp: new Date().toISOString(),
         };
 
@@ -121,7 +110,7 @@ export async function POST(
       message: userMessage 
     });
   } catch (error) {
-    console.error('Send message error:', error);
+    console.error('Erreur API:', error);
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
       { status: 500 }

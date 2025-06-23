@@ -1,7 +1,6 @@
-// src/lib/supabase.ts (version optimisée pour WebSocket)
+// 3. Corriger src/lib/supabase.ts avec les nouveaux types
 import { createBrowserClient } from '@supabase/ssr'
 
-// Client pour les composants côté client uniquement
 export function createClient() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,10 +22,8 @@ export function createClient() {
   )
 }
 
-// Instance client par défaut pour l'export legacy
 export const supabase = createClient()
 
-// Types pour TypeScript
 export type Database = {
   public: {
     Tables: {
@@ -55,52 +52,57 @@ export type Database = {
           updated_at?: string
         }
       }
-      chat_sessions: {
+      books: {
         Row: {
           id: string
           user_id: string
           title: string
+          description: string | null
           created_at: string
           updated_at: string
-          message_count: number
+          chapter_count: number
         }
         Insert: {
-          id: string
+          id?: string
           user_id: string
           title: string
+          description?: string | null
           created_at?: string
           updated_at?: string
-          message_count?: number
+          chapter_count?: number
         }
         Update: {
           id?: string
           user_id?: string
           title?: string
+          description?: string | null
           updated_at?: string
-          message_count?: number
+          chapter_count?: number
         }
       }
-      chat_messages: {
+      book_chat: {
         Row: {
           id: string
-          session_id: string
+          book_id: string
+          title: string
           content: string
-          sender: 'user' | 'assistant'
-          timestamp: string
+          created_at: string
+          updated_at: string
         }
         Insert: {
-          id: string
-          session_id: string
+          id?: string
+          book_id: string
+          title: string
           content: string
-          sender: 'user' | 'assistant'
-          timestamp?: string
+          created_at?: string
+          updated_at?: string
         }
         Update: {
           id?: string
-          session_id?: string
+          book_id?: string
+          title?: string
           content?: string
-          sender?: 'user' | 'assistant'
-          timestamp?: string
+          updated_at?: string
         }
       }
     }

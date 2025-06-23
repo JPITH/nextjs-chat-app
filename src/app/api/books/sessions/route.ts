@@ -1,25 +1,38 @@
-// src/app/api/chat/sessions/route.ts
+// src/app/api/books/sessions/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { redis } from '@/lib/redis';
-import { generateId } from '@/lib/utils';
-import { ChatSession } from '@/types/chat';
+import { createClient } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
+    const supabase = createClient();
     
-    if (!userId) {
+    // Obtenir l'utilisateur depuis l'en-tête ou la session
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
       return NextResponse.json(
         { error: 'Non autorisé' },
         { status: 401 }
       );
     }
 
-    const sessions = await redis.getUserSessions(userId);
-    
-    return NextResponse.json({ sessions });
+    const { data: books, error } = await supabase
+      .from('books')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      console.error('Erreur récupération livres:', error);
+      return NextResponse.json(
+        { error: 'Erreur récupération livres' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ books: books || [] });
   } catch (error) {
-    console.error('Get sessions error:', error);
+    console.error('Erreur API:', error);
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
       { status: 500 }
@@ -29,9 +42,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
+    const supabase = createClient();
     
-    if (!userId) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
       return NextResponse.json(
         { error: 'Non autorisé' },
         { status: 401 }
@@ -39,25 +54,39 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title } = body;
+    const { title, description } = body;
 
-    const sessionId = generateId();
-    const now = new Date();
+    if (!title || typeof title !== 'string') {
+      return NextResponse.json(
+        { error: 'Titre requis' },
+        { status: 400 }
+      );
+    }
 
-    const session: ChatSession = {
-      id: sessionId,
-      userId,
-      title: title || 'Nouvelle conversation',
-      createdAt: now,
-      updatedAt: now,
-      messageCount: 0,
+    const newBook = {
+      user_id: user.id,
+      title: title.trim(),
+      description: description?.trim() || null,
+      chapter_count: 0,
     };
 
-    await redis.createChatSession(session);
+    const { data: book, error } = await supabase
+      .from('books')
+      .insert(newBook)
+      .select()
+      .single();
 
-    return NextResponse.json({ session }, { status: 201 });
+    if (error) {
+      console.error('Erreur création livre:', error);
+      return NextResponse.json(
+        { error: 'Erreur création livre' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ book }, { status: 201 });
   } catch (error) {
-    console.error('Create session error:', error);
+    console.error('Erreur API:', error);
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
       { status: 500 }

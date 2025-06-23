@@ -1,24 +1,23 @@
-// src/app/api/webhook/n8n/route.ts - Version avec Redis pour l'IA
-
+// 1. Corriger src/app/api/webhook/n8n/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-
+import { createClient } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { sessionId, message, userId } = body;
+    const { bookId, message, userId } = body;
 
-    if (!sessionId || !message || !userId) {
+    if (!bookId || !message || !userId) {
       return NextResponse.json(
-        { error: 'sessionId, message et userId requis' },
+        { error: 'bookId, message et userId requis' },
         { status: 400 }
       );
     }
 
     // Configuration du webhook n8n
-    const webhookUrl = process.env.N8N_WEBHOOK_URL;
-    const username = process.env.N8N_WEBHOOK_USER;
-    const password = process.env.N8N_WEBHOOK_PASSWORD;
+    const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL;
+    const username = process.env.NEXT_PUBLIC_N8N_WEBHOOK_USER;
+    const password = process.env.NEXT_PUBLIC_N8N_WEBHOOK_PASSWORD;
 
     if (!webhookUrl || !username || !password) {
       return NextResponse.json({ 
@@ -27,14 +26,16 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Préparer le payload minimal pour n8n (Supabase only)
+    // Préparer le payload pour n8n
     const payload = {
-      sessionId,
+      bookId,
       userId,
       message,
       timestamp: new Date().toISOString()
     };
+
     console.log('Envoi webhook n8n:', payload);
+    
     const basicAuth = 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
 
     const webhookResponse = await fetch(webhookUrl, {
@@ -82,41 +83,38 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ================ ROUTE POUR RECEVOIR LES RÉPONSES N8N ================
-
+// Route pour recevoir les réponses n8n
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
     const { 
-      sessionId, 
+      bookId, 
       response, 
       timestamp
     } = body
 
-    if (!sessionId || !response) {
+    if (!bookId || !response) {
       return NextResponse.json(
-        { error: 'sessionId et response requis' },
+        { error: 'bookId et response requis' },
         { status: 400 }
       )
     }
 
-    console.log('Réponse n8n reçue:', { sessionId, responseLength: response.length });
+    console.log('Réponse n8n reçue:', { bookId, responseLength: response.length });
 
-    // ================ SAUVEGARDER LA RÉPONSE ================
-    
+    // Sauvegarder la réponse assistant
     const assistantMessage = {
       id: crypto.randomUUID(),
-      session_id: sessionId,
+      book_id: bookId,
+      title: 'Réponse Assistant',
       content: response,
-      sender: 'assistant' as const,
-      timestamp: timestamp || new Date().toISOString(),
+      created_at: timestamp || new Date().toISOString(),
+      updated_at: timestamp || new Date().toISOString(),
     }
 
-    // Sauvegarder la réponse assistant uniquement dans Supabase
-    const { createClient } = await import('@/lib/supabase');
     const supabase = createClient();
     const { error: messageError } = await supabase
-      .from('chat_messages')
+      .from('book_chat')
       .insert(assistantMessage);
 
     if (messageError) {
@@ -129,7 +127,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Réponse n8n traitée (Supabase only)' 
+      message: 'Réponse n8n traitée' 
     });
 
   } catch (error) {
