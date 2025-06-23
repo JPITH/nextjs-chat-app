@@ -1,11 +1,5 @@
-// src/lib/redis-supabase.ts - Intégration Redis Wrapper
-import { createClient } from './supabase'
+// Fichier supprimé : Redis n'est plus utilisé
 
-export class SupabaseRedisManager {
-  private supabase = createClient()
-  private wrapperName = 'chats' // Nom de votre wrapper Redis
-
-  // ================ GESTION DES MESSAGES CHAT ================
   
   /**
    * Sauvegarder un message dans Redis ET Supabase
@@ -257,9 +251,3 @@ export class SupabaseRedisManager {
 
     } catch (error) {
       console.error('Erreur synchronisation:', error)
-    }
-  }
-}
-
-// Instance exportée
-export const redisManager = new SupabaseRedisManager()

@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/components/chat/*": ["./*"]
+    }
+  },
+  "include": ["./*.ts", "./*.tsx"],
+  "exclude": ["node_modules"]
+}

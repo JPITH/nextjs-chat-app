@@ -1,13 +1,16 @@
-// src/app/dashboard/page.tsx (version Supabase)
+// src/app/dashboard/page.tsx (version avec diagnostic Redis)
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useAuth } from '@/components/auth/AuthProvider'
 import { HeaderSupabase } from '@/components/layout/HeaderSupabase'
-import { SessionsListSupabase } from '@/components/dashboard/SessionsListSupabase'
+import { BooksListSupabase } from '@/components/dashboard/BooksListSupabase'
+
+import { Button } from '@/components/ui/Button'
 
 export default function DashboardPage() {
   const { user, loading } = useAuth()
+  const [showRedisDiagnostic, setShowRedisDiagnostic] = useState(false)
 
   if (loading) {
     return (
@@ -29,7 +32,12 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <HeaderSupabase />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <SessionsListSupabase />
+        
+        {/* Toggle pour le diagnostic Redis */}
+        <div className="mb-6 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900">Mes livres</h1>
+        </div>
+        <BooksListSupabase />
       </main>
     </div>
   )

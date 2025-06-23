@@ -15,24 +15,24 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
             <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-8 leading-tight">
-              Chat
+              Créez votre
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                App
+                Livre avec l'IA
               </span>
             </h1>
             <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
-              Une expérience de chat révolutionnaire powered by n8n et Supabase. 
-              Conversations intelligentes, réponses instantanées, interface moderne.
+              Une expérience de création de livres assistée par IA. 
+              Imaginez, rédigez et structurez vos livres facilement avec l'aide d'un assistant intelligent.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/auth/signup">
                 <Button size="lg" className="px-8 py-4 text-lg">
-                  Commencer gratuitement
+                  Commencer mon livre
                 </Button>
               </Link>
               <Link href="/auth/signin">
                 <Button variant="outline" size="lg" className="px-8 py-4 text-lg">
-                  Se connecter
+                  Accéder à mes livres
                 </Button>
               </Link>
             </div>
@@ -50,10 +50,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Fonctionnalités puissantes
+              Fonctionnalités pour auteurs modernes
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Découvrez toutes les fonctionnalités qui font de ChatApp la solution idéale pour vos conversations
+              Découvrez toutes les fonctionnalités qui font de BookAI l’outil idéal pour écrire, organiser et publier vos livres avec l’aide de l’IA
             </p>
           </div>
 

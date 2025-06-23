@@ -1,16 +1,4 @@
-// src/lib/redis.ts
-import { createClient, RedisClientType } from 'redis';
-import { Message, ChatSession } from '@/types/chat';
-import { User } from '@/types/auth';
 
-class RedisClient {
-  private client: RedisClientType | null = null;
-  private isConnecting = false;
-
-  async getClient(): Promise<RedisClientType> {
-    if (this.client?.isReady) {
-      return this.client;
-    }
 
     if (this.isConnecting) {
       // Wait for connection to complete
@@ -33,7 +21,7 @@ class RedisClient {
       });
 
       this.client.on('connect', () => {
-        console.log('Redis Client Connected');
+        // Fichier supprimé : Redis n'est plus utilisé
       });
 
       await this.client.connect();
@@ -178,11 +166,3 @@ class RedisClient {
     const client = await this.getClient();
     await client.set(`password:${userId}`, hashedPassword);
   }
-
-  async getUserPassword(userId: string): Promise<string | null> {
-    const client = await this.getClient();
-    return await client.get(`password:${userId}`);
-  }
-}
-
-export const redis = new RedisClient();

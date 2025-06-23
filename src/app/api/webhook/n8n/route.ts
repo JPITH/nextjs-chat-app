@@ -1,7 +1,7 @@
 // src/app/api/webhook/n8n/route.ts - Version avec Redis pour l'IA
 
 import { NextRequest, NextResponse } from 'next/server'
-import { redisManager } from '@/lib/redis-supabase'
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,42 +27,14 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // ================ PRÉPARATION DU CONTEXTE POUR L'IA ================
-    
-    // 1. Récupérer l'historique depuis Redis
-    const messageHistory = await redisManager.getMessagesForAI(sessionId, 20);
-    
-    // 2. Récupérer le contexte IA
-    const aiContext = await redisManager.getAIContext(sessionId);
-    
-    // 3. Préparer le payload enrichi pour n8n
-    const enrichedPayload = {
+    // Préparer le payload minimal pour n8n (Supabase only)
+    const payload = {
       sessionId,
       userId,
       message,
-      timestamp: new Date().toISOString(),
-      
-      // Contexte pour l'IA
-      context: {
-        message_history: messageHistory,
-        ai_context: aiContext,
-        session_metadata: {
-          total_messages: messageHistory.length,
-          last_activity: new Date().toISOString()
-        }
-      }
+      timestamp: new Date().toISOString()
     };
-
-    console.log('Envoi webhook n8n avec contexte:', {
-      sessionId,
-      userId,
-      message,
-      historyLength: messageHistory.length,
-      hasAIContext: !!aiContext
-    });
-
-    // ================ ENVOI À N8N ================
-    
+    console.log('Envoi webhook n8n:', payload);
     const basicAuth = 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
 
     const webhookResponse = await fetch(webhookUrl, {
@@ -73,7 +45,7 @@ export async function POST(request: NextRequest) {
         'Origin': 'http://localhost:3000',
         'User-Agent': 'ChatApp/1.0',
       },
-      body: JSON.stringify(enrichedPayload),
+      body: JSON.stringify(payload),
     });
 
     if (!webhookResponse.ok) {
@@ -118,9 +90,7 @@ export async function PUT(request: NextRequest) {
     const { 
       sessionId, 
       response, 
-      timestamp,
-      ai_context_update, // Nouveau contexte IA à sauvegarder
-      conversation_summary // Résumé de conversation
+      timestamp
     } = body
 
     if (!sessionId || !response) {
@@ -142,60 +112,30 @@ export async function PUT(request: NextRequest) {
       timestamp: timestamp || new Date().toISOString(),
     }
 
-    // Sauvegarder en Supabase ET Redis
-    await redisManager.saveMessage(assistantMessage)
+    // Sauvegarder la réponse assistant uniquement dans Supabase
+    const { createClient } = await import('@/lib/supabase');
+    const supabase = createClient();
+    const { error: messageError } = await supabase
+      .from('chat_messages')
+      .insert(assistantMessage);
 
-    // ================ METTRE À JOUR LE CONTEXTE IA ================
-    
-    if (ai_context_update || conversation_summary) {
-      await redisManager.saveAIContext(sessionId, {
-        summary: conversation_summary,
-        conversation_state: ai_context_update?.state,
-        user_preferences: ai_context_update?.preferences,
-        topics: ai_context_update?.topics
-      })
+    if (messageError) {
+      console.error('Erreur sauvegarde message assistant:', messageError);
+      return NextResponse.json(
+        { error: 'Erreur sauvegarde message' },
+        { status: 500 }
+      );
     }
-
-    console.log('Message assistant sauvegardé avec contexte IA mis à jour');
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Réponse n8n traitée et contexte IA mis à jour' 
+      message: 'Réponse n8n traitée (Supabase only)' 
     });
 
   } catch (error) {
     console.error('Erreur traitement réponse n8n:', error);
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
-      { status: 500 }
-    );
-  }
-}
-
-// ================ ROUTE POUR SYNCHRONISER REDIS ================
-
-export async function PATCH(request: NextRequest) {
-  try {
-    const { sessionId } = await request.json()
-    
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'sessionId requis' },
-        { status: 400 }
-      )
-    }
-
-    await redisManager.syncRedisWithSupabase(sessionId)
-
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Synchronisation Redis terminée' 
-    });
-
-  } catch (error) {
-    console.error('Erreur synchronisation:', error);
-    return NextResponse.json(
-      { error: 'Erreur synchronisation' },
       { status: 500 }
     );
   }

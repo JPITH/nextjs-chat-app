@@ -5,8 +5,16 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { createClient } from '@/lib/supabase';
-import MessageListSupabase from './MessageListSupabase';
-import MessageInputSupabase from './MessageInputSupabase';
+import MessageListSupabase from '@/components/chat/MessageListSupabase';
+import MessageInputSupabase from '@/components/chat/MessageInputSupabase';
+
+// Add type for Supabase error
+type SupabaseError = {
+  message: string;
+  details?: string;
+  hint?: string;
+  code?: string;
+};
 import { Button } from '@/components/ui/Button';
 
 interface Message {
@@ -17,22 +25,22 @@ interface Message {
   session_id: string;
 }
 
-interface ChatSession {
+interface Book {
   id: string;
   user_id: string;
   title: string;
   created_at: string;
   updated_at: string;
-  message_count: number;
+  description: string;
 }
 
 interface ChatInterfaceSupabaseProps {
-  sessionId: string;
+  bookId: string;
 }
 
-export function ChatInterfaceSupabase({ sessionId }: ChatInterfaceSupabaseProps) {
+export default function ChatInterfaceSupabase({ bookId }: ChatInterfaceSupabaseProps) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [session, setSession] = useState<ChatSession | null>(null);
+  const [book, setBook] = useState<Book | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
@@ -41,61 +49,91 @@ export function ChatInterfaceSupabase({ sessionId }: ChatInterfaceSupabaseProps)
   const supabase = createClient();
   const channelRef = useRef<any>(null);
 
-  const fetchSession = useCallback(async () => {
+  const fetchBook = useCallback(async () => {
     if (!user) return;
 
     try {
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('chat_sessions')
+      const { data: bookData, error: bookError } = await supabase
+        .from('books')
         .select('*')
-        .eq('id', sessionId)
+        .eq('id', bookId)
         .eq('user_id', user.id)
         .single();
 
-      if (sessionError) {
-        console.error('Erreur récupération session:', sessionError);
+      if (bookError) {
+        console.error('Erreur récupération livre:', bookError);
         router.push('/dashboard');
         return;
       }
 
-      setSession(sessionData);
-    } catch (error) {
+      setBook(bookData);
+    } catch (error: unknown) {
       console.error('Erreur:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          name: error.name,
+          stack: error.stack
+        });
+      }
       router.push('/dashboard');
     }
-  }, [sessionId, user, router, supabase]);
+  }, [bookId, user, router, supabase]);
 
   const fetchMessages = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user, skipping message fetch');
+      return;
+    }
 
+    console.log('Fetching messages for bookId:', bookId);
+    
     try {
-      const { data: messagesData, error: messagesError } = await supabase
+      const { data: messagesData, error: messagesError, status } = await supabase
         .from('chat_messages')
         .select('*')
-        .eq('session_id', sessionId)
+        .eq('session_id', bookId)
         .order('timestamp', { ascending: true });
 
+      console.log('Supabase query status:', status);
+      
       if (messagesError) {
-        console.error('Erreur récupération messages:', messagesError);
+        console.error('Error fetching messages:', {
+          message: messagesError.message,
+          details: messagesError.details,
+          hint: messagesError.hint,
+          code: messagesError.code
+        });
         return;
       }
 
+      console.log('Fetched messages:', messagesData);
       setMessages(messagesData || []);
-    } catch (error) {
-      console.error('Erreur:', error);
+    } catch (error: unknown) {
+      console.error('Unexpected error in fetchMessages:');
+      if (error instanceof Error) {
+        console.error({
+          error: error.toString(),
+          errorName: error.name,
+          errorMessage: error.message,
+          errorStack: error.stack
+        });
+      } else {
+        console.error('Non-Error object thrown:', error);
+      }
     } finally {
       setLoading(false);
     }
-  }, [sessionId, user, supabase]);
+  }, [bookId, user, supabase]);
 
   useEffect(() => {
-    fetchSession();
+    fetchBook();
     fetchMessages();
-  }, [fetchSession, fetchMessages]);
+  }, [fetchBook, fetchMessages]);
 
   // Configuration du temps réel avec gestion d'erreur améliorée
   useEffect(() => {
-    if (!user || !sessionId) return;
+    if (!user || !bookId) return;
 
     let timeoutId: NodeJS.Timeout;
     let retryCount = 0;
@@ -112,7 +150,7 @@ export function ChatInterfaceSupabase({ sessionId }: ChatInterfaceSupabaseProps)
         }
 
         const channel = supabase
-          .channel(`messages_${sessionId}`, {
+          .channel(`messages_${bookId}`, {
             config: {
               broadcast: { self: false },
               presence: { key: user.id }
@@ -124,7 +162,7 @@ export function ChatInterfaceSupabase({ sessionId }: ChatInterfaceSupabaseProps)
               event: 'INSERT',
               schema: 'public',
               table: 'chat_messages',
-              filter: `session_id=eq.${sessionId}`,
+              filter: `session_id=eq.${bookId}`,
             },
             (payload) => {
               console.log('Nouveau message reçu:', payload);
@@ -207,12 +245,12 @@ export function ChatInterfaceSupabase({ sessionId }: ChatInterfaceSupabaseProps)
         channelRef.current = null;
       }
     };
-  }, [sessionId, user, supabase, fetchMessages]);
+  }, [bookId, user, supabase, fetchMessages]);
 
   // src/components/chat/ChatInterfaceSupabase.tsx - Gestion des réponses n8n
 
 const handleSendMessage = async (message: string) => {
-  if (!user || !session) return;
+  if (!user) return;
 
   setSending(true);
   try {
@@ -221,7 +259,7 @@ const handleSendMessage = async (message: string) => {
       content: message,
       sender: 'user',
       timestamp: new Date().toISOString(),
-      session_id: sessionId,
+      session_id: bookId,
     };
 
     // Sauvegarder le message en base
@@ -240,171 +278,42 @@ const handleSendMessage = async (message: string) => {
     if (wsStatus !== 'connected') {
       setMessages(prev => [...prev, savedMessage]);
     }
-
-    // Mettre à jour le compteur de messages de la session
-    const { error: updateError } = await supabase
-      .from('chat_sessions')
-      .update({
-        message_count: session.message_count + 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', sessionId);
-
-    if (updateError) {
-      console.error('Erreur mise à jour session:', updateError);
-    } else {
-      setSession(prev => prev ? {
-        ...prev,
-        message_count: prev.message_count + 1,
-        updated_at: new Date().toISOString()
-      } : null);
-    }
-
-    // ============ WEBHOOK N8N AVEC TRAITEMENT DE LA RÉPONSE ============
-    try {
-      console.log('Envoi webhook n8n...');
-      
-      const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL;
-      const username = process.env.NEXT_PUBLIC_N8N_WEBHOOK_USER || 'admin';
-      const password = process.env.NEXT_PUBLIC_N8N_WEBHOOK_PASSWORD || 'v7Efb2!h@A6RxP';
-
-      if (!webhookUrl) {
-        console.warn('URL webhook n8n non configurée');
-        return;
-      }
-
-      const basicAuth = 'Basic ' + btoa(`${username}:${password}`);
-
-      const webhookPayload = {
-        sessionId,
-        userId: user.id,
-        message,
-        timestamp: new Date().toISOString(),
-      };
-
-      console.log('Payload webhook:', webhookPayload);
-
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': basicAuth,
-          'Origin': window.location.origin,
-        },
-        body: JSON.stringify(webhookPayload),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Erreur webhook n8n:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText
-        });
-        return;
-      }
-
-      const result = await response.json();
-      console.log('Réponse webhook n8n:', result);
-
-      // ========== TRAITEMENT DE LA RÉPONSE N8N ==========
-      if (result.response) {
-        // Créer le message de l'assistant
-        const assistantMessage: Omit<Message, 'id'> = {
-          content: result.response,
-          sender: 'assistant',
-          timestamp: new Date().toISOString(),
-          session_id: sessionId,
-        };
-
-        // Sauvegarder la réponse en base
-        const { data: savedAssistantMessage, error: assistantError } = await supabase
-          .from('chat_messages')
-          .insert(assistantMessage)
-          .select()
-          .single();
-
-        if (assistantError) {
-          console.error('Erreur sauvegarde réponse assistant:', assistantError);
-        } else {
-          console.log('Réponse assistant sauvegardée:', savedAssistantMessage);
-          
-          // Si WebSocket ne fonctionne pas, ajouter le message manuellement
-          if (wsStatus !== 'connected') {
-            setMessages(prev => [...prev, savedAssistantMessage]);
-          }
-
-          // Mettre à jour le compteur de messages
-          const { error: updateCountError } = await supabase
-            .from('chat_sessions')
-            .update({
-              message_count: session.message_count + 2, // +1 user + 1 assistant
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', sessionId);
-
-          if (updateCountError) {
-            console.error('Erreur mise à jour compteur:', updateCountError);
-          } else {
-            setSession(prev => prev ? {
-              ...prev,
-              message_count: prev.message_count + 2,
-              updated_at: new Date().toISOString()
-            } : null);
-          }
-        }
-      }
-
-    } catch (webhookError) {
-      console.error('Erreur webhook n8n:', webhookError);
-    }
-
   } catch (error) {
     console.error('Error sending message:', error);
   } finally {
     setSending(false);
   }
 };
-  // Ajoutez ceci temporairement dans ChatInterfaceSupabase.tsx après le handleSendMessage
 
-  // Debug : vérifier les variables d'environnement
-  useEffect(() => {
-    console.log('Variables environnement côté client:');
-    console.log('NEXT_PUBLIC_N8N_WEBHOOK_URL:', process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL);
-    console.log('User ID:', user?.id);
-    console.log('Session ID:', sessionId);
-  }, [user, sessionId]);
-
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-gray-500">Chargement de la conversation...</div>
-      </div>
-    );
-  }
-
+if (loading) {
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="border-b border-gray-200 p-4 bg-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900">
-              {session?.title || 'Conversation'}
-            </h1>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <span>{messages.length} message{messages.length !== 1 ? 's' : ''}</span>
-              <span>•</span>
-              <div className="flex items-center space-x-1">
-                <div className={`w-2 h-2 rounded-full ${
-                  wsStatus === 'connected' ? 'bg-green-500' : 
-                  wsStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
-                }`}></div>
-                <span className="text-xs">
-                  {wsStatus === 'connected' ? 'Temps réel' : 
-                   wsStatus === 'connecting' ? 'Connexion...' : 'Mode polling'}
-                </span>
-              </div>
+    <div className="flex-1 flex items-center justify-center">
+      <div className="text-gray-500">Chargement de la conversation...</div>
+    </div>
+  );
+}
+
+return (
+  <div className="flex flex-col h-full">
+    {/* Header */}
+    <div className="border-b border-gray-200 p-4 bg-white">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">
+            {book?.title || 'Conversation'}
+          </h1>
+          <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <span>{messages.length} message{messages.length !== 1 ? 's' : ''}</span>
+            <span>•</span>
+            <div className="flex items-center space-x-1">
+              <div className={`w-2 h-2 rounded-full ${
+                wsStatus === 'connected' ? 'bg-green-500' : 
+                wsStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
+              }`}></div>
+              <span className="text-xs">
+                {wsStatus === 'connected' ? 'Temps réel' : 
+                 wsStatus === 'connecting' ? 'Connexion...' : 'Mode polling'}
+              </span>
             </div>
           </div>
           <Button
@@ -415,15 +324,16 @@ const handleSendMessage = async (message: string) => {
           </Button>
         </div>
       </div>
-
-      {/* Messages */}
-      <MessageListSupabase messages={messages} />
-
-      {/* Input */}
-      <MessageInputSupabase
-        onSendMessage={handleSendMessage}
-        disabled={sending}
-      />
     </div>
-  );
+
+    {/* Messages */}
+    <MessageListSupabase messages={messages} />
+
+    {/* Input */}
+    <MessageInputSupabase
+      onSendMessage={handleSendMessage}
+      disabled={sending}
+    />
+  </div>
+);
 }
