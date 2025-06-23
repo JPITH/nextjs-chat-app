@@ -1,58 +1,30 @@
-// src/components/dashboard/BooksListSupabase.tsx
+// src/components/dashboard/BooksListSupabase.tsx - Version mise à jour
 'use client'
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth/AuthProvider'
 import { createClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent } from '@/components/ui/Card'
 import { formatDate, truncateText } from '@/lib/utils'
-import Modal from '@/components/ui/Modal'
+import { EnhancedBookCreation } from './EnhancedBookCreation'
 
 interface Book {
   id: string
   user_id: string
   title: string
   description?: string
+  genre?: string
+  target_words?: number
   created_at: string
   updated_at: string
-  chapter_count: number
   message_count?: number
 }
 
-interface BookChat {
-  id: string
-  book_id: string
-  title: string
-  content: string
-  created_at: string
-  updated_at: string
-}
-
 export function BooksListSupabase() {
-  // Suppression d'un livre avec confirmation
-  const handleDeleteBook = async (bookId: string) => {
-    if (!window.confirm('Voulez-vous vraiment supprimer ce livre ? Cette action est irréversible.')) return;
-    try {
-      const { error } = await supabase.from('books').delete().eq('id', bookId);
-      if (error) throw error;
-      setBooks(books => books.filter(b => b.id !== bookId));
-    } catch (error) {
-      alert('Erreur lors de la suppression du livre.');
-      // Optionnel: log
-      console.error('Erreur suppression livre:', error);
-    }
-  }
   const [books, setBooks] = useState<Book[]>([])
   const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
-  const [showForm, setShowForm] = useState(false)
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [editingBook, setEditingBook] = useState<Book | null>(null)
-  // Vue : 'grid' ou 'list'
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     if (typeof window !== 'undefined') {
       const saved = window.localStorage.getItem('books_view_mode');
@@ -60,8 +32,8 @@ export function BooksListSupabase() {
     }
     return 'grid';
   })
+  
   const { user } = useAuth()
-  const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
@@ -70,7 +42,6 @@ export function BooksListSupabase() {
     }
   }, [user])
 
-  // Nouvelle version : récupère le count exact de messages pour chaque livre
   const fetchBooks = async () => {
     if (!user) return
     try {
@@ -79,15 +50,18 @@ export function BooksListSupabase() {
         .select('*')
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false })
+      
       if (error) throw error
-      // Pour chaque livre, on va chercher le count book_chat
-      const booksWithMsgCount = await Promise.all((data || []).map(async (b: any) => {
+      
+      // Pour chaque livre, récupérer le count des messages
+      const booksWithMsgCount = await Promise.all((data || []).map(async (book: any) => {
         const { count } = await supabase
           .from('book_chat')
           .select('*', { count: 'exact', head: true })
-          .eq('book_id', b.id)
-        return { ...b, message_count: count ?? 0 }
+          .eq('book_id', book.id)
+        return { ...book, message_count: count ?? 0 }
       }))
+      
       setBooks(booksWithMsgCount)
     } catch (error) {
       console.error('Erreur récupération livres:', error)
@@ -96,51 +70,80 @@ export function BooksListSupabase() {
     }
   }
 
-  // Suppression de la fonction fetchBookChats et de l'état bookChats
-
-  const createOrEditBook = async () => {
-    if (!user || !title.trim()) return
-    setCreating(true)
+  const handleDeleteBook = async (bookId: string, bookTitle: string) => {
+    if (!window.confirm(`Voulez-vous vraiment supprimer "${bookTitle}" ? Cette action est irréversible.`)) return
+    
     try {
-      if (editingBook) {
-        // Edition
-        const { data, error } = await supabase
-          .from('books')
-          .update({ title: title.trim(), description: description.trim() })
-          .eq('id', editingBook.id)
-          .select()
-          .single()
-        if (error) throw error
-        setBooks(books => books.map(b => b.id === editingBook.id ? { ...b, ...data } : b))
-      } else {
-        // Création
-        const newBook = {
-          user_id: user.id,
-          title: title.trim(),
-          description: description.trim(),
-        }
-        const { data, error } = await supabase
-          .from('books')
-          .insert([newBook])
-          .select()
-          .single()
-        if (error) throw error
-        setBooks([data, ...books])
+      // Supprimer d'abord tous les messages du livre
+      const { error: chatError } = await supabase
+        .from('book_chat')
+        .delete()
+        .eq('book_id', bookId)
+      
+      if (chatError) {
+        console.error('Erreur suppression messages:', chatError)
       }
-      setShowForm(false)
-      setTitle('')
-      setDescription('')
-      setEditingBook(null)
+      
+      // Puis supprimer le livre
+      const { error: bookError } = await supabase
+        .from('books')
+        .delete()
+        .eq('id', bookId)
+      
+      if (bookError) throw bookError
+      
+      setBooks(books => books.filter(b => b.id !== bookId))
     } catch (error) {
-      console.error('Erreur création/édition livre:', error)
-    } finally {
-      setCreating(false)
+      console.error('Erreur suppression livre:', error)
+      alert('Erreur lors de la suppression du livre.')
     }
   }
 
+  const getGenreEmoji = (genre?: string) => {
+    const emojiMap: Record<string, string> = {
+      'Fiction': '📖',
+      'Fiction courte': '📝',
+      'Non-fiction': '👤',
+      'Essai': '🤔',
+      'Développement personnel': '🌱',
+      'Business': '💼',
+      'Poésie': '🎭',
+      'Jeunesse': '🧸',
+      'Récit de voyage': '🗺️',
+      'Gastronomie': '👨‍🍳',
+      'Thriller': '🔍',
+      'Fantasy': '🏰',
+      'Autre': '📚'
+    }
+    return emojiMap[genre || 'Autre'] || '📚'
+  }
+
+  const getProgressPercentage = (book: Book) => {
+    if (!book.target_words || !book.message_count) return 0
+    // Estimation basique : ~50 mots par message utilisateur en moyenne
+    const estimatedWords = (book.message_count / 2) * 50
+    return Math.min(Math.round((estimatedWords / book.target_words) * 100), 100)
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-bold text-gray-900">Mes livres</h2>
+          <div className="flex gap-2">
+            <div className="animate-pulse bg-gray-200 h-10 w-24 rounded"></div>
+            <div className="animate-pulse bg-gray-200 h-10 w-24 rounded"></div>
+            <div className="animate-pulse bg-gray-200 h-10 w-32 rounded"></div>
+          </div>
+        </div>
+        <div className="text-gray-500">Chargement...</div>
+      </div>
+    )
+  }
+
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold text-gray-900">Mes livres</h2>
         <div className="flex gap-2">
           <Button
@@ -149,6 +152,7 @@ export function BooksListSupabase() {
               setViewMode('grid');
               if (typeof window !== 'undefined') window.localStorage.setItem('books_view_mode', 'grid');
             }}
+            size="sm"
           >
             🟦 Grille
           </Button>
@@ -158,127 +162,128 @@ export function BooksListSupabase() {
               setViewMode('list');
               if (typeof window !== 'undefined') window.localStorage.setItem('books_view_mode', 'list');
             }}
+            size="sm"
           >
             ☰ Liste
           </Button>
-          <Button onClick={() => {
-            setShowForm(true);
-            setEditingBook(null);
-            setTitle('');
-            setDescription('');
-          }}>
-            Créer un nouveau livre
-          </Button>
+          <EnhancedBookCreation onBookCreated={fetchBooks} />
         </div>
-      </div> 
-      <Modal open={showForm} onClose={() => { setShowForm(false); setEditingBook(null); }} title={editingBook ? "Éditer le livre" : "Créer un nouveau livre"}>
-        <div className="flex flex-col gap-4">
-          <input
-            className="border rounded px-3 py-2"
-            placeholder="Titre du livre"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            disabled={creating}
-          />
-          <textarea
-            className="border rounded px-3 py-2"
-            placeholder="Description du livre"
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            disabled={creating}
-          />
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => { setShowForm(false); setEditingBook(null); }} disabled={creating}>
-              Annuler
-            </Button>
-            <Button onClick={createOrEditBook} disabled={creating || !title.trim()}>
-              {creating ? (editingBook ? 'Enregistrement...' : 'Création...') : (editingBook ? 'Enregistrer' : 'Créer')}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-      {loading ? (
-        <div className="text-gray-500">Chargement...</div>
-      ) : books.length === 0 ? (
-        <div className="text-gray-500">Aucun livre pour l’instant.</div>
+      </div>
+
+      {books.length === 0 ? (
+        <Card>
+          <CardContent className="text-center py-12">
+            <div className="text-6xl mb-4">📚</div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Aucun livre pour l'instant
+            </h3>
+            <p className="text-gray-500 mb-6">
+              Créez votre premier livre avec l'aide d'un assistant spécialisé
+            </p>
+            <EnhancedBookCreation onBookCreated={fetchBooks} />
+          </CardContent>
+        </Card>
       ) : (
-        viewMode === 'grid' ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {books.map(book => (
-              <Link key={book.id} href={`/books/${book.id}`}>
-                <Card className="cursor-pointer hover:shadow-lg transition">
-                  <CardContent>
-                    <h3 className="text-lg font-bold mb-2 pt-4">{truncateText(book.title, 40)}</h3>
-                    <p className="text-gray-600 mb-2">{truncateText(book.description, 80)}</p>
-                    <div className="flex flex-col gap-1 text-xs text-gray-400">
-                      <span>Créé le : {formatDate(book.created_at)}</span>
-                      <span>Modifié le : {formatDate(book.updated_at)}</span>
-                      {book.message_count ?? 0} messages
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={e => {
-                          e.preventDefault();
-                          setEditingBook(book);
-                          setTitle(book.title || '');
-                          setDescription(book.description || '');
-                          setShowForm(true);
-                        }}
-                      >
-                        Éditer
-                      </Button>
-                      <span className="flex items-center gap-1 mt-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8s-9-3.582-9-8 4.03-8 9-8 9 3.582 9 8z" /></svg>
-                        {book.message_count ?? 0} messages
-                        <button onClick={e => {e.preventDefault(); handleDeleteBook(String(book.id));}} title="Supprimer le livre" className="ml-auto text-red-500 hover:text-red-700">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                      </span>
+        <div className={viewMode === 'grid' ? 
+          "grid md:grid-cols-2 lg:grid-cols-3 gap-6" : 
+          "space-y-4"
+        }>
+          {books.map(book => {
+            const progress = getProgressPercentage(book)
+            
+            return (
+              <Card 
+                key={book.id} 
+                className="hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group"
+              >
+                <CardContent className={viewMode === 'grid' ? 'p-6' : 'p-4'}>
+                  <div className={viewMode === 'grid' ? 'space-y-4' : 'flex items-center space-x-4'}>
+                    
+                    {/* Contenu principal */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-lg">{getGenreEmoji(book.genre)}</span>
+                          <div>
+                            <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                              {truncateText(book.title, viewMode === 'grid' ? 40 : 60)}
+                            </h3>
+                            {book.genre && (
+                              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                {book.genre}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {book.description && (
+                        <p className="text-gray-600 text-sm mb-3">
+                          {truncateText(book.description, viewMode === 'grid' ? 80 : 120)}
+                        </p>
+                      )}
+
+                      {/* Barre de progression */}
+                      {book.target_words && progress > 0 && (
+                        <div className="mb-3">
+                          <div className="flex justify-between text-xs text-gray-500 mb-1">
+                            <span>Progression</span>
+                            <span>{progress}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${progress}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Statistiques */}
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <div className="flex items-center space-x-3">
+                          <span className="flex items-center space-x-1">
+                            <span>💬</span>
+                            <span>{book.message_count || 0} échanges</span>
+                          </span>
+                          {book.target_words && (
+                            <span className="flex items-center space-x-1">
+                              <span>🎯</span>
+                              <span>{(book.target_words / 1000).toFixed(0)}k mots</span>
+                            </span>
+                          )}
+                        </div>
+                        <span>{formatDate(book.updated_at)}</span>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {books.map(book => (
-              <Link key={book.id} href={`/books/${book.id}`}>
-                <Card className="cursor-pointer hover:shadow-lg transition">
-                  <CardContent className="flex flex-row items-center gap-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold mb-1 pt-4">{truncateText(book.title, 40)}</h3>
-                      <p className="text-gray-600 mb-1">{truncateText(book.description, 80)}</p>
-                      <span className="text-xs text-gray-400 block">Créé le : {formatDate(book.created_at)}</span>
-                      <span className="text-xs text-gray-400 block">Modifié le : {formatDate(book.updated_at)}</span>
-                      {book.message_count ?? 0} messages
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={e => {
-                          e.preventDefault();
-                          setEditingBook(book);
-                          setTitle(book.title || '');
-                          setDescription(book.description || '');
-                          setShowForm(true);
+
+                    {/* Actions */}
+                    <div className={viewMode === 'grid' ? 'flex justify-between items-center pt-2' : 'flex items-center space-x-2'}>
+                      <Link href={`/books/${book.id}`} className="flex-1">
+                        <Button className="w-full" size="sm">
+                          {book.message_count === 0 ? '🚀 Commencer' : '✏️ Continuer'}
+                        </Button>
+                      </Link>
+                      
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          handleDeleteBook(book.id, book.title)
                         }}
+                        className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                        title="Supprimer le livre"
                       >
-                        Éditer
-                      </Button>
-                      <span className="flex items-center gap-1 mt-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8s-9-3.582-9-8 4.03-8 9-8 9 3.582 9 8z" /></svg>
-                        {book.message_count ?? 0} messages
-                        <button onClick={e => {e.preventDefault(); handleDeleteBook(String(book.id));}} title="Supprimer le livre" className="ml-auto text-red-500 hover:text-red-700">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                      </span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        )
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
       )}
     </div>
   )

@@ -1,4 +1,4 @@
-// src/components/chat/EnhancedChatInterface.tsx
+// 1. Corriger src/components/chat/EnhancedChatInterface.tsx
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -32,7 +32,7 @@ interface BookStats {
   total_messages: number;
   word_count: number;
   estimated_pages: number;
-  user_words: number; // Mots écrits par l'utilisateur (non IA)
+  user_words: number;
 }
 
 interface EnhancedChatInterfaceProps {
@@ -52,7 +52,6 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
   const [sending, setSending] = useState(false);
   const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   const [showStats, setShowStats] = useState(false);
-  const [writingMode, setWritingMode] = useState<'chat' | 'focus'>('chat');
   
   const { user } = useAuth();
   const router = useRouter();
@@ -78,7 +77,7 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
       total_messages: messages.length,
       word_count: totalWords,
       user_words: userWords,
-      estimated_pages: Math.ceil(userWords / 250) // ~250 mots par page
+      estimated_pages: Math.ceil(userWords / 250)
     };
   }, []);
 
@@ -164,6 +163,7 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
               filter: `book_id=eq.${bookId}`,
             },
             (payload) => {
+              console.log('Message reçu via WebSocket:', payload);
               const newMessage = payload.new as Message;
               setMessages((prev) => {
                 if (prev.some(msg => msg.id === newMessage.id)) {
@@ -176,6 +176,7 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
             }
           )
           .subscribe((status) => {
+            console.log('WebSocket status:', status);
             if (status === 'SUBSCRIBED') {
               setWsStatus('connected');
               retryCount = 0;
@@ -214,51 +215,97 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
   }, [bookId, user, supabase, calculateStats]);
 
   const handleSendMessage = async (message: string) => {
-    if (!user) return;
+    if (!user || !message.trim()) return;
 
     setSending(true);
     try {
-      const newMessage = {
+      console.log('Envoi du message:', message);
+      
+      // 1. Sauvegarder le message utilisateur
+      const userMessage = {
         book_id: bookId,
         title: 'Message utilisateur',
-        content: message,
+        content: message.trim(),
       };
 
       const { data: savedMessage, error: messageError } = await supabase
         .from('book_chat')
-        .insert(newMessage)
+        .insert(userMessage)
         .select()
         .single();
 
       if (messageError) {
         console.error('Erreur sauvegarde message:', messageError);
+        alert('Erreur lors de la sauvegarde du message');
         return;
       }
 
+      console.log('Message sauvegardé:', savedMessage);
+
+      // Mettre à jour immédiatement l'interface si WebSocket ne fonctionne pas
       if (wsStatus !== 'connected') {
         const updated = [...messages, savedMessage];
         setMessages(updated);
         setStats(calculateStats(updated));
       }
 
-      // Appel à l'API pour déclencher n8n
+      // 2. Appel à l'API pour déclencher n8n
       try {
-        await fetch('/api/webhook/n8n', {
+        console.log('Appel webhook n8n...');
+        const response = await fetch('/api/webhook/n8n', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             bookId,
-            message,
+            message: message.trim(),
             userId: user.id,
           }),
         });
+
+        const result = await response.json();
+        console.log('Réponse webhook:', result);
+
+        if (!response.ok) {
+          console.warn('Webhook n8n a échoué:', result);
+        } else if (result.success && result.data && result.data.response) {
+          // n8n a répondu directement, sauvegarder la réponse
+          console.log('Sauvegarde de la réponse n8n:', result.data.response);
+          
+          const assistantMessage = {
+            book_id: bookId,
+            title: 'Réponse Assistant',
+            content: result.data.response,
+          };
+
+          const { data: aiMessage, error: aiError } = await supabase
+            .from('book_chat')
+            .insert(assistantMessage)
+            .select()
+            .single();
+
+          if (aiError) {
+            console.error('Erreur sauvegarde réponse IA:', aiError);
+          } else {
+            console.log('Réponse IA sauvegardée:', aiMessage);
+            
+            // Mettre à jour immédiatement l'interface si WebSocket ne fonctionne pas
+            if (wsStatus !== 'connected') {
+              const updatedWithAI = [...messages, savedMessage, aiMessage];
+              setMessages(updatedWithAI);
+              setStats(calculateStats(updatedWithAI));
+            }
+          }
+        }
       } catch (webhookError) {
         console.error('Erreur webhook n8n:', webhookError);
+        // Ne pas bloquer l'envoi du message si n8n échoue
       }
+
     } catch (error) {
       console.error('Error sending message:', error);
+      alert('Erreur lors de l\'envoi du message');
     } finally {
       setSending(false);
     }
@@ -350,14 +397,6 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setWritingMode(writingMode === 'chat' ? 'focus' : 'chat')}
-            >
-              {writingMode === 'chat' ? '🎯 Mode Focus' : '💬 Mode Chat'}
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
               onClick={() => setShowStats(!showStats)}
             >
               📊 Stats
@@ -404,23 +443,15 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
         )}
       </div>
 
-      {/* Interface adaptative selon le mode */}
-      <div className={`flex-1 ${writingMode === 'focus' ? 'bg-gray-50' : ''}`}>
-        <MessageListSupabase 
-          messages={messages} 
-          focusMode={writingMode === 'focus'}
-        />
+      {/* Interface de chat standard */}
+      <div className="flex-1">
+        <MessageListSupabase messages={messages} />
       </div>
 
       <MessageInputSupabase
         onSendMessage={handleSendMessage}
         disabled={sending}
-        placeholder={
-          writingMode === 'focus' 
-            ? "Continuez votre livre..." 
-            : "Demandez de l'aide à votre assistant d'écriture..."
-        }
-        focusMode={writingMode === 'focus'}
+        placeholder="Demandez de l'aide à votre assistant d'écriture..."
       />
     </div>
   );

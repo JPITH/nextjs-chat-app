@@ -1,4 +1,4 @@
-// src/components/dashboard/EnhancedBookCreation.tsx
+// src/components/dashboard/EnhancedBookCreation.tsx - Version 2.0
 'use client'
 
 import React, { useState } from 'react'
@@ -65,35 +65,53 @@ export function EnhancedBookCreation({ onBookCreated }: EnhancedBookCreationProp
 
       if (error) throw error
 
-      // Si un template est sélectionné, envoyer le prompt initial
+      console.log('Livre créé:', book)
+
+      // Si un template est sélectionné, envoyer immédiatement le prompt complet
       if (selectedTemplate) {
+        console.log('Envoi du prompt initial du template:', selectedTemplate.name)
+        
+        // Sauvegarder d'abord le prompt comme message utilisateur
         const initialMessage = {
           book_id: book.id,
           title: 'Message utilisateur',
-          content: selectedTemplate.initialPrompt,
+          content: selectedTemplate.fullPrompt,
         }
 
-        await supabase
+        const { data: savedPrompt, error: promptError } = await supabase
           .from('book_chat')
           .insert([initialMessage])
+          .select()
+          .single()
 
-        // Déclencher n8n avec le contexte du template
-        try {
-          await fetch('/api/webhook/n8n', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              bookId: book.id,
-              message: selectedTemplate.initialPrompt,
-              userId: user.id,
-              templateId: selectedTemplate.id,
-              genre: selectedTemplate.genre,
-            }),
-          })
-        } catch (webhookError) {
-          console.error('Erreur webhook n8n:', webhookError)
+        if (promptError) {
+          console.error('Erreur sauvegarde prompt initial:', promptError)
+        } else {
+          console.log('Prompt initial sauvegardé:', savedPrompt)
+          
+          // Déclencher n8n avec le prompt complet
+          try {
+            console.log('Appel n8n pour le prompt template...')
+            const response = await fetch('/api/webhook/n8n', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                bookId: book.id,
+                message: selectedTemplate.fullPrompt,
+                userId: user.id,
+                templateId: selectedTemplate.id,
+                templateName: selectedTemplate.name,
+                genre: selectedTemplate.genre,
+              }),
+            })
+            
+            const result = await response.json()
+            console.log('Réponse n8n pour template:', result)
+          } catch (webhookError) {
+            console.error('Erreur webhook template:', webhookError)
+          }
         }
       }
 
@@ -109,6 +127,7 @@ export function EnhancedBookCreation({ onBookCreated }: EnhancedBookCreationProp
       router.push(`/books/${book.id}`)
     } catch (error) {
       console.error('Erreur création livre:', error)
+      alert('Erreur lors de la création du livre')
     } finally {
       setCreating(false)
     }
@@ -132,37 +151,47 @@ export function EnhancedBookCreation({ onBookCreated }: EnhancedBookCreationProp
       <Modal 
         open={showModal} 
         onClose={resetModal}
-        title={step === 'template' ? 'Choisir un type de livre' : 'Détails de votre livre'}
+        title={step === 'template' ? 'Choisir un assistant spécialisé' : 'Détails de votre livre'}
+        className="max-w-2xl"
       >
-        <div className="min-h-[400px]">
+        <div className="min-h-[500px] max-h-[80vh] overflow-y-auto">
           {step === 'template' && (
             <div className="space-y-4">
-              <p className="text-gray-600 text-sm">
-                Sélectionnez un type de livre pour obtenir une assistance spécialisée, ou partez de zéro.
-              </p>
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h3 className="font-medium text-blue-900 mb-2">🤖 Comment ça fonctionne ?</h3>
+                <p className="text-sm text-blue-700">
+                  Chaque assistant est spécialisé dans un type de livre. Dès que vous créez votre projet, 
+                  l'assistant vous envoie un message complet avec toute son expertise pour vous guider étape par étape.
+                </p>
+              </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
                 {bookTemplates.map((template) => (
                   <Card 
                     key={template.id} 
-                    className="cursor-pointer hover:shadow-md transition-shadow hover:border-blue-300"
+                    className="cursor-pointer hover:shadow-md transition-all hover:border-blue-300 hover:scale-[1.02]"
                     onClick={() => handleTemplateSelect(template)}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start space-x-3">
                         <span className="text-2xl">{template.emoji}</span>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-sm">{template.name}</h3>
+                          <h3 className="font-medium text-sm text-gray-900">{template.name}</h3>
                           <p className="text-xs text-gray-500 mt-1 line-clamp-2">
                             {template.description}
                           </p>
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                          <div className="flex items-center justify-between mt-3">
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
                               {template.genre}
                             </span>
                             <span className="text-xs text-gray-400">
                               ~{(template.targetWords / 1000).toFixed(0)}k mots
                             </span>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-gray-100">
+                            <p className="text-xs text-green-600 font-medium">
+                              ✨ Assistant expert inclus
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -177,8 +206,11 @@ export function EnhancedBookCreation({ onBookCreated }: EnhancedBookCreationProp
                   className="w-full"
                   onClick={handleCreateFromScratch}
                 >
-                  🎨 Créer sans template (format libre)
+                  🎨 Créer sans assistant (format libre)
                 </Button>
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  Pour les auteurs expérimentés qui préfèrent partir de zéro
+                </p>
               </div>
             </div>
           )}
@@ -186,17 +218,34 @@ export function EnhancedBookCreation({ onBookCreated }: EnhancedBookCreationProp
           {step === 'details' && (
             <div className="space-y-4">
               {selectedTemplate && (
-                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">{selectedTemplate.emoji}</span>
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-blue-200">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">{selectedTemplate.emoji}</span>
                     <div>
-                      <p className="font-medium text-sm text-blue-900">
-                        {selectedTemplate.name}
+                      <p className="font-medium text-blue-900">
+                        Assistant {selectedTemplate.name}
                       </p>
-                      <p className="text-xs text-blue-700">
-                        Assistant spécialisé activé pour ce genre
+                      <p className="text-sm text-blue-700">
+                        Dès la création, cet assistant vous enverra un guide complet pour démarrer votre {selectedTemplate.name.toLowerCase()}
                       </p>
                     </div>
+                  </div>
+                  
+                  <div className="mt-3 p-3 bg-white rounded border border-blue-100">
+                    <p className="text-xs font-medium text-gray-700 mb-2">
+                      📋 Structure suggérée par l'assistant :
+                    </p>
+                    <ul className="text-xs text-gray-600 space-y-1">
+                      {selectedTemplate.suggestedStructure.slice(0, 4).map((step, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <span className="text-blue-500 font-bold">{index + 1}.</span>
+                          <span>{step}</span>
+                        </li>
+                      ))}
+                      {selectedTemplate.suggestedStructure.length > 4 && (
+                        <li className="text-gray-400 text-center">... et plus encore</li>
+                      )}
+                    </ul>
                   </div>
                 </div>
               )}
@@ -220,7 +269,7 @@ export function EnhancedBookCreation({ onBookCreated }: EnhancedBookCreationProp
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full h-20 px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder={selectedTemplate ?
-                    "Décrivez brièvement votre idée..." :
+                    "L'assistant vous aidera à développer votre idée..." :
                     "De quoi parlera votre livre ?"
                   }
                 />
@@ -238,22 +287,24 @@ export function EnhancedBookCreation({ onBookCreated }: EnhancedBookCreationProp
                 />
                 <p className="text-xs text-gray-500">
                   {customTargetWords && `≈ ${Math.ceil(customTargetWords / 250)} pages`}
+                  {selectedTemplate && ` • Recommandé pour ce type: ${selectedTemplate.targetWords.toLocaleString()} mots`}
                 </p>
               </div>
 
               {selectedTemplate && (
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs font-medium text-gray-700 mb-2">
-                    Structure suggérée pour ce type de livre :
-                  </p>
-                  <ul className="text-xs text-gray-600 space-y-1">
-                    {selectedTemplate.suggestedStructure.map((step, index) => (
-                      <li key={index} className="flex items-start space-x-2">
-                        <span className="text-blue-500">•</span>
-                        <span>{step}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <div className="flex items-start space-x-2">
+                    <span className="text-green-600 text-lg">🚀</span>
+                    <div>
+                      <p className="text-sm font-medium text-green-800 mb-1">
+                        Prêt à démarrer avec votre assistant !
+                      </p>
+                      <p className="text-xs text-green-700">
+                        Après création, votre assistant {selectedTemplate.name.toLowerCase()} vous enverra 
+                        immédiatement un message détaillé avec toutes les étapes pour réussir votre projet.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -263,14 +314,14 @@ export function EnhancedBookCreation({ onBookCreated }: EnhancedBookCreationProp
                   onClick={() => setStep('template')}
                   className="flex-1"
                 >
-                  ← Retour
+                  ← Changer d'assistant
                 </Button>
                 <Button 
                   onClick={createBook}
                   disabled={creating || !title.trim()}
                   className="flex-1"
                 >
-                  {creating ? 'Création...' : 'Créer mon livre'}
+                  {creating ? 'Création...' : selectedTemplate ? '🚀 Créer avec assistant' : 'Créer mon livre'}
                 </Button>
               </div>
             </div>
@@ -281,66 +332,41 @@ export function EnhancedBookCreation({ onBookCreated }: EnhancedBookCreationProp
   )
 }
 
-// Composant pour afficher les suggestions contextuelles dans le chat
-export function ContextualSuggestions({ 
+// Composant pour afficher un aperçu du prompt d'un template (optionnel)
+export function TemplatePromptPreview({ 
   templateId, 
-  wordCount, 
-  onSuggestionClick 
+  onClose 
 }: {
-  templateId?: string
-  wordCount: number
-  onSuggestionClick: (suggestion: string) => void
+  templateId: string
+  onClose: () => void
 }) {
-  if (!templateId) return null
-
   const template = bookTemplates.find(t => t.id === templateId)
   if (!template) return null
 
-  const progress = wordCount / template.targetWords
-  let suggestions: string[] = []
-
-  if (progress < 0.1) {
-    suggestions = [
-      "Aide-moi à développer mes personnages principaux",
-      "Comment structurer mon récit ?",
-      "Quels sont les éléments clés de ce genre ?"
-    ]
-  } else if (progress < 0.5) {
-    suggestions = [
-      "Comment approfondir l'intrigue ?",
-      "Aide-moi à créer plus de tension",
-      "Quels obstacles ajouter pour mes personnages ?"
-    ]
-  } else if (progress < 0.8) {
-    suggestions = [
-      "Comment préparer le climax ?",
-      "Aide-moi à nouer les fils de l'intrigue",
-      "Comment intensifier l'émotion ?"
-    ]
-  } else {
-    suggestions = [
-      "Comment bien conclure mon livre ?",
-      "Aide-moi à réviser les passages clés",
-      "Quels derniers détails vérifier ?"
-    ]
-  }
-
   return (
-    <div className="p-4 bg-gray-50 border-t">
-      <p className="text-sm font-medium text-gray-700 mb-2">
-        💡 Suggestions pour votre {template.name.toLowerCase()} :
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {suggestions.map((suggestion, index) => (
-          <button
-            key={index}
-            onClick={() => onSuggestionClick(suggestion)}
-            className="text-xs bg-white border border-gray-200 rounded-full px-3 py-1 hover:bg-blue-50 hover:border-blue-300 transition-colors"
-          >
-            {suggestion}
-          </button>
-        ))}
+    <Modal open={true} onClose={onClose} title={`Aperçu: Assistant ${template.name}`}>
+      <div className="space-y-4">
+        <div className="flex items-center space-x-3">
+          <span className="text-2xl">{template.emoji}</span>
+          <div>
+            <h3 className="font-medium">{template.name}</h3>
+            <p className="text-sm text-gray-600">{template.description}</p>
+          </div>
+        </div>
+        
+        <div className="bg-gray-50 p-4 rounded-lg max-h-64 overflow-y-auto">
+          <p className="text-xs font-medium text-gray-700 mb-2">
+            📝 Message initial que l'assistant vous enverra :
+          </p>
+          <div className="text-sm text-gray-800 whitespace-pre-line">
+            {template.fullPrompt.substring(0, 500)}...
+          </div>
+        </div>
+        
+        <div className="text-center">
+          <Button onClick={onClose}>Fermer l'aperçu</Button>
+        </div>
       </div>
-    </div>
+    </Modal>
   )
 }

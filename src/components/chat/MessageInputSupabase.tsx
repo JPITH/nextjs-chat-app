@@ -1,4 +1,4 @@
-// src/components/chat/MessageInputSupabase.tsx
+// 2. Corriger src/components/chat/MessageInputSupabase.tsx
 'use client';
 
 import React, { useState, useRef } from 'react';
@@ -7,9 +7,14 @@ import { Button } from '@/components/ui/Button';
 interface MessageInputSupabaseProps {
   onSendMessage: (message: string) => void;
   disabled?: boolean;
+  placeholder?: string;
 }
 
-export default function MessageInputSupabase({ onSendMessage, disabled }: MessageInputSupabaseProps) {
+export default function MessageInputSupabase({ 
+  onSendMessage, 
+  disabled, 
+  placeholder = "Tapez votre message..." 
+}: MessageInputSupabaseProps) {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -50,7 +55,7 @@ export default function MessageInputSupabase({ onSendMessage, disabled }: Messag
             value={message}
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
-            placeholder="Tapez votre message..."
+            placeholder={placeholder}
             className="w-full resize-none border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows={1}
             style={{ minHeight: '40px', maxHeight: '120px' }}

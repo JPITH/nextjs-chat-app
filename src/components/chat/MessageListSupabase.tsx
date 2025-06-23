@@ -1,4 +1,4 @@
-// 6. Corriger src/components/chat/MessageListSupabase.tsx
+// 3. Corriger src/components/chat/MessageListSupabase.tsx
 'use client';
 
 import React, { useEffect, useRef } from 'react';
@@ -32,8 +32,7 @@ export default function MessageListSupabase({ messages }: MessageListSupabasePro
   // Détecter si le message est de l'utilisateur ou de l'assistant
   const isUserMessage = (message: Message) => {
     return message.title?.toLowerCase().includes('utilisateur') || 
-           message.title?.toLowerCase().includes('user') ||
-           !message.title?.toLowerCase().includes('assistant');
+           message.title?.toLowerCase().includes('user');
   };
 
   if (messages.length === 0) {
