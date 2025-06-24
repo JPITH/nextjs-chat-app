@@ -1,6 +1,6 @@
-// src/app/auth/signup/page.tsx (corrigé)
-import { SignUpFormSupabase } from '@/components/auth/SignUpFormSupabase';
+// src/app/auth/signup/page.tsx
+import { SignUpForm } from '@/components/auth/SignUpForm';
 
 export default function SignUpPage() {
-  return <SignUpFormSupabase />;
+  return <SignUpForm />;
 }

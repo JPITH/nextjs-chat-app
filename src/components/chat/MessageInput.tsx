@@ -1,20 +1,20 @@
-// 2. Corriger src/components/chat/MessageInputSupabase.tsx
+// src/components/chat/MessageInput.tsx
 'use client';
 
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 
-interface MessageInputSupabaseProps {
+interface MessageInputProps {
   onSendMessage: (message: string) => void;
   disabled?: boolean;
   placeholder?: string;
 }
 
-export default function MessageInputSupabase({ 
+export default function MessageInput({ 
   onSendMessage, 
   disabled, 
   placeholder = "Tapez votre message..." 
-}: MessageInputSupabaseProps) {
+}: MessageInputProps) {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -23,7 +23,6 @@ export default function MessageInputSupabase({
     if (message.trim() && !disabled) {
       onSendMessage(message.trim());
       setMessage('');
-      // Reset textarea height
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
@@ -40,7 +39,6 @@ export default function MessageInputSupabase({
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
     
-    // Auto-resize textarea
     const textarea = e.target;
     textarea.style.height = 'auto';
     textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;

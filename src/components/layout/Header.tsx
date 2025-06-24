@@ -1,25 +1,25 @@
-// src/components/layout/HeaderSupabase.tsx
-'use client'
+// src/components/layout/Header.tsx
+'use client';
 
-import React from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/components/auth/AuthProvider'
-import { signOut } from '@/lib/auth-supabase'
-import { Button } from '@/components/ui/Button'
+import React from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { signOut } from '@/lib/auth';
+import { Button } from '@/components/ui/Button';
 
-export function HeaderSupabase() {
-  const { user } = useAuth()
-  const router = useRouter()
+export function Header() {
+  const { user } = useAuth();
+  const router = useRouter();
 
   const handleSignOut = async () => {
     try {
-      await signOut()
-      router.push('/')
+      await signOut();
+      router.push('/');
     } catch (error) {
-      console.error('Erreur déconnexion:', error)
+      console.error('Erreur déconnexion:', error);
     }
-  }
+  };
 
   return (
     <header className="border-b border-gray-200 bg-white">
@@ -46,5 +46,5 @@ export function HeaderSupabase() {
         </div>
       </div>
     </header>
-  )
+  );
 }

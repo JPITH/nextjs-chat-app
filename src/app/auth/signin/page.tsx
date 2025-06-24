@@ -1,6 +1,6 @@
-// src/app/auth/signin/page.tsx (corrigé)
-import { SignInFormSupabase } from '@/components/auth/SignInFormSupabase';
+// src/app/auth/signin/page.tsx
+import { SignInForm } from '@/components/auth/SignInForm';
 
 export default function SignInPage() {
-  return <SignInFormSupabase />;
+  return <SignInForm />;
 }

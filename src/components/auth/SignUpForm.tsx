@@ -1,43 +1,43 @@
-// 1. Corriger src/components/auth/SignUpFormSupabase.tsx
-'use client'
+// src/components/auth/SignUpForm.tsx
+'use client';
 
-import React, { useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { signUp } from '@/lib/auth-supabase'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { signUp } from '@/lib/auth';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 
-export function SignUpFormSupabase() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [name, setName] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const router = useRouter()
+export function SignUpForm() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+    e.preventDefault();
+    setError('');
+    setLoading(true);
 
     try {
-      await signUp(email, password, name)
-      router.push(`/auth/confirm-email?email=${encodeURIComponent(email)}`)
+      await signUp(email, password, name);
+      router.push(`/auth/confirm-email?email=${encodeURIComponent(email)}`);
     } catch (error: any) {
       if (error.message.includes('User already registered')) {
-        setError('Un compte avec cet email existe déjà.')
+        setError('Un compte avec cet email existe déjà.');
       } else {
-        setError(error.message || 'Erreur lors de l\'inscription')
+        setError(error.message || 'Erreur lors de l\'inscription');
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
       <div className="max-w-md w-full">
         <Card>
           <CardHeader>
@@ -72,25 +72,18 @@ export function SignUpFormSupabase() {
               />
 
               {error && (
-                <div className="text-red-600 text-sm text-center">
+                <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg">
                   {error}
                 </div>
               )}
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loading}
-              >
+              <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Inscription...' : 'S\'inscrire'}
               </Button>
 
               <div className="text-center text-sm text-gray-600">
                 Déjà un compte ?{' '}
-                <Link 
-                  href="/auth/signin" 
-                  className="text-blue-600 hover:text-blue-800 underline font-medium"
-                >
+                <Link href="/auth/signin" className="text-blue-600 hover:underline font-medium">
                   Se connecter
                 </Link>
               </div>
@@ -99,5 +92,5 @@ export function SignUpFormSupabase() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

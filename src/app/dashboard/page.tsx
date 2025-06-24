@@ -1,44 +1,49 @@
-// src/app/dashboard/page.tsx (version avec diagnostic Redis)
-'use client'
+// src/app/dashboard/page.tsx
+'use client';
 
-import React, { useState } from 'react'
-import { useAuth } from '@/components/auth/AuthProvider'
-import { HeaderSupabase } from '@/components/layout/HeaderSupabase'
-import { BooksListSupabase } from '@/components/dashboard/BooksListSupabase'
-
-import { Button } from '@/components/ui/Button'
+import React from 'react';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { Header } from '@/components/layout/Header';
+import { BooksList } from '@/components/dashboard/BooksList';
 
 export default function DashboardPage() {
-  const { user, loading } = useAuth()
-  const [showRedisDiagnostic, setShowRedisDiagnostic] = useState(false)
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">Chargement...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement...</p>
+        </div>
       </div>
-    )
+    );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">Redirection...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600">Redirection...</p>
+        </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <HeaderSupabase />
+      <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Toggle pour le diagnostic Redis */}
-        <div className="mb-6 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Mes livres</h1>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Bonjour {user.user_metadata?.name || 'Auteur'} ! 👋
+          </h1>
+          <p className="text-gray-600">
+            Prêt à écrire votre prochain chef-d'œuvre ? Choisissez un assistant spécialisé pour vous guider.
+          </p>
         </div>
-        <BooksListSupabase />
+        <BooksList />
       </main>
     </div>
-  )
+  );
 }
