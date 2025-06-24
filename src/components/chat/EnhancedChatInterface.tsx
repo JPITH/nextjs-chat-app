@@ -1,4 +1,4 @@
-// 3. Mise à jour de src/components/chat/EnhancedChatInterface.tsx avec debug intégré
+// src/components/chat/EnhancedChatInterface.tsx - Ligne 519 corrigée
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -191,9 +191,9 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
         .single();
 
       if (!error && componentMountedRef.current) {
-        const updated = [...messages, data];
-        setMessages(updated);
-        setStats(calculateStats(updated));
+        const updatedMessages = [...messages, data];
+        setMessages(updatedMessages);
+        setStats(calculateStats(updatedMessages));
       }
     } catch (error) {
       console.error('Erreur ajout debug message:', error);
@@ -332,14 +332,14 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
             if (prev.some(msg => msg.id === newMessage.id)) {
               return prev;
             }
-            const updated = [...prev, newMessage];
-            setStats(calculateStats(updated));
+            const updatedMessages = [...prev, newMessage];
+            setStats(calculateStats(updatedMessages));
             
             if (newMessage.title?.toLowerCase().includes('assistant')) {
               setWaitingForAI(false);
             }
             
-            return updated;
+            return updatedMessages;
           });
         }
       );
@@ -446,10 +446,10 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
       console.log('✅ Message sauvegardé:', savedMessage.id);
 
       if (componentMountedRef.current) {
-        const updated = [...messages, savedMessage];
-        setMessages(updated);
-        setStats(calculateStats(updated));
-        setLastMessageCount(updated.length);
+        const updatedMessages = [...messages, savedMessage];
+        setMessages(updatedMessages);
+        setStats(calculateStats(updatedMessages));
+        setLastMessageCount(updatedMessages.length);
       }
 
       // **Appel webhook amélioré avec debug**
@@ -497,26 +497,26 @@ export default function EnhancedChatInterface({ bookId }: EnhancedChatInterfaceP
           }
         } else {
           // Vérifier si une réponse IA a été sauvegardée
-          if (result.success && result.aiResponseSaved && result.data?.savedAIResponse) {
+          if (result.success && result.aiResponseSaved && result.savedAIResponse) {
             console.log('🤖 Réponse IA immédiate détectée et sauvegardée !');
             
             if (debugMode) {
               await addDebugMessage(
-                `✅ Réponse IA immédiate:\nTaille: ${result.data.savedAIResponse.content.length} caractères\nID: ${result.data.savedAIResponse.id}`,
+                `✅ Réponse IA immédiate:\nTaille: ${result.savedAIResponse.content.length} caractères\nID: ${result.savedAIResponse.id}`,
                 'AI Response Immediate'
               );
             }
             
             const aiMessage: Message = {
-              id: result.data.savedAIResponse.id,
+              id: result.savedAIResponse.id,
               book_id: bookId,
               title: 'Réponse Assistant',
-              content: result.data.savedAIResponse.content,
-              created_at: result.data.savedAIResponse.timestamp
+              content: result.savedAIResponse.content,
+              created_at: result.savedAIResponse.timestamp
             };
 
             if (componentMountedRef.current) {
-              const updatedWithAI = [...updated, aiMessage];
+              const updatedWithAI = [...updatedMessages, aiMessage];
               setMessages(updatedWithAI);
               setStats(calculateStats(updatedWithAI));
               setLastMessageCount(updatedWithAI.length);

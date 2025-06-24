@@ -1,5 +1,4 @@
-// src/lib/channel-manager.ts - Gestionnaire centralisé des channels Supabase
-
+// src/lib/channel-manager.ts - Version corrigée avec types appropriés
 import { createClient } from '@/lib/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -94,7 +93,9 @@ class ChannelManager {
   async removeAllChannels(): Promise<void> {
     console.log('🧹 Suppression de tous les channels...');
     
-    for (const [name] of this.channels) {
+    // Utiliser Array.from pour éviter l'erreur d'itération
+    const channelEntries = Array.from(this.channels.entries());
+    for (const [name] of channelEntries) {
       await this.removeChannel(name);
     }
     
@@ -130,7 +131,9 @@ class ChannelManager {
   async cleanupInactiveChannels(): Promise<void> {
     console.log('🧹 Nettoyage des channels inactifs...');
     
-    for (const [name, channel] of this.channels) {
+    // Utiliser Array.from pour éviter l'erreur d'itération
+    const channelEntries = Array.from(this.channels.entries());
+    for (const [name, channel] of channelEntries) {
       if (channel.state === 'closed' || channel.state === 'errored') {
         await this.removeChannel(name);
       }
@@ -170,7 +173,15 @@ export function useSupabaseManagedChannel(
 
       // Configurer les écouteurs si nécessaire
       if (options.onMessage) {
-        channel.on('postgres_changes', '*', options.onMessage);
+        channel.on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'book_chat'
+          },
+          options.onMessage
+        );
       }
 
       // S'abonner au channel
@@ -191,7 +202,7 @@ export function useSupabaseManagedChannel(
         manager.current.removeChannel(channelName);
       }
     };
-  }, [channelName]);
+  }, [channelName, setupChannel]);
 
   return {
     channel: channelRef.current,
