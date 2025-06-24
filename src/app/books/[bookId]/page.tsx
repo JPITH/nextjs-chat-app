@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { HeaderSupabase } from '@/components/layout/Header';
+import { Header } from '@/components/layout/Header';
 import ChatInterface from '@/components/chat/ChatInterface';
 
 interface BookPageProps {
@@ -56,7 +56,7 @@ export default function BookPage({ params }: BookPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <HeaderSupabase />
+      <Header />
       <main className="flex-1 flex flex-col">
         <div className="flex-1 max-w-7xl mx-auto w-full">
           <div className="h-[calc(100vh-4rem)] bg-white shadow-sm">
