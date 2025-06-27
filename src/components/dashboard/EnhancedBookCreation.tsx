@@ -1,10 +1,9 @@
-// src/components/dashboard/EnhancedBookCreation.tsx - Version 2.0
+// src/components/dashboard/EnhancedBookCreation.tsx - Correction
 'use client'
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth/AuthProvider'
-import { createClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -26,7 +25,6 @@ export function EnhancedBookCreation({ onBookCreated }: EnhancedBookCreationProp
   
   const { user } = useAuth()
   const router = useRouter()
-  const supabase = createClient()
 
   const handleTemplateSelect = (template: BookTemplate) => {
     setSelectedTemplate(template)
@@ -49,82 +47,53 @@ export function EnhancedBookCreation({ onBookCreated }: EnhancedBookCreationProp
     
     setCreating(true)
     try {
-      const newBook = {
-        user_id: user.id,
-        title: title.trim(),
-        description: description.trim(),
-        genre: selectedTemplate?.genre || 'Autre',
-        target_words: customTargetWords || 50000,
+      // 1. Créer le livre via l'API
+      const response = await fetch('/api/books', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim(),
+          genre: selectedTemplate?.genre || 'Autre',
+          target_words: customTargetWords || 50000,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la création du livre')
       }
 
-      const { data: book, error } = await supabase
-        .from('books')
-        .insert([newBook])
-        .select()
-        .single()
-
-      if (error) throw error
-
+      const { book } = await response.json()
       console.log('Livre créé:', book)
 
-      // Si un template est sélectionné, envoyer immédiatement le prompt complet
+      // 2. Si un template est sélectionné, envoyer le prompt via l'API de messages
       if (selectedTemplate) {
         console.log('Envoi du prompt initial du template:', selectedTemplate.name)
         
-        // Sauvegarder d'abord le prompt comme message utilisateur
-        const initialMessage = {
-          book_id: book.id,
-          title: 'Message utilisateur',
-          content: selectedTemplate.fullPrompt,
-        }
+        try {
+          const messageResponse = await fetch(`/api/books/${book.id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: selectedTemplate.fullPrompt,
+            }),
+          })
 
-        const { data: savedPrompt, error: promptError } = await supabase
-          .from('book_chat')
-          .insert([initialMessage])
-          .select()
-          .single()
-
-        if (promptError) {
-          console.error('Erreur sauvegarde prompt initial:', promptError)
-        } else {
-          console.log('Prompt initial sauvegardé:', savedPrompt)
-          
-          // Déclencher n8n avec le prompt complet
-          try {
-            console.log('Appel n8n pour le prompt template...')
-            const response = await fetch('/api/webhook/n8n', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                bookId: book.id,
-                message: selectedTemplate.fullPrompt,
-                userId: user.id,
-                templateId: selectedTemplate.id,
-                templateName: selectedTemplate.name,
-                genre: selectedTemplate.genre,
-              }),
-            })
-            
-            const result = await response.json()
-            console.log('Réponse n8n pour template:', result)
-          } catch (webhookError) {
-            console.error('Erreur webhook template:', webhookError)
+          if (!messageResponse.ok) {
+            console.error('Erreur lors de l\'envoi du prompt initial')
+          } else {
+            console.log('Prompt initial envoyé avec succès')
           }
+        } catch (error) {
+          console.error('Erreur envoi prompt:', error)
         }
       }
 
+      // 3. Nettoyer et rediriger
       onBookCreated()
-      setShowModal(false)
-      setStep('template')
-      setSelectedTemplate(null)
-      setTitle('')
-      setDescription('')
-      setCustomTargetWords(null)
-      
-      // Rediriger vers le livre créé
+      resetModal()
       router.push(`/books/${book.id}`)
+      
     } catch (error) {
       console.error('Erreur création livre:', error)
       alert('Erreur lors de la création du livre')
@@ -230,23 +199,6 @@ export function EnhancedBookCreation({ onBookCreated }: EnhancedBookCreationProp
                       </p>
                     </div>
                   </div>
-                  
-                  <div className="mt-3 p-3 bg-white rounded border border-blue-100">
-                    <p className="text-xs font-medium text-gray-700 mb-2">
-                      📋 Structure suggérée par l'assistant :
-                    </p>
-                    <ul className="text-xs text-gray-600 space-y-1">
-                      {selectedTemplate.suggestedStructure.slice(0, 4).map((step, index) => (
-                        <li key={index} className="flex items-start space-x-2">
-                          <span className="text-blue-500 font-bold">{index + 1}.</span>
-                          <span>{step}</span>
-                        </li>
-                      ))}
-                      {selectedTemplate.suggestedStructure.length > 4 && (
-                        <li className="text-gray-400 text-center">... et plus encore</li>
-                      )}
-                    </ul>
-                  </div>
                 </div>
               )}
 
@@ -291,23 +243,6 @@ export function EnhancedBookCreation({ onBookCreated }: EnhancedBookCreationProp
                 </p>
               </div>
 
-              {selectedTemplate && (
-                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                  <div className="flex items-start space-x-2">
-                    <span className="text-green-600 text-lg">🚀</span>
-                    <div>
-                      <p className="text-sm font-medium text-green-800 mb-1">
-                        Prêt à démarrer avec votre assistant !
-                      </p>
-                      <p className="text-xs text-green-700">
-                        Après création, votre assistant {selectedTemplate.name.toLowerCase()} vous enverra 
-                        immédiatement un message détaillé avec toutes les étapes pour réussir votre projet.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               <div className="flex space-x-2 pt-4">
                 <Button 
                   variant="outline" 
@@ -329,44 +264,5 @@ export function EnhancedBookCreation({ onBookCreated }: EnhancedBookCreationProp
         </div>
       </Modal>
     </>
-  )
-}
-
-// Composant pour afficher un aperçu du prompt d'un template (optionnel)
-export function TemplatePromptPreview({ 
-  templateId, 
-  onClose 
-}: {
-  templateId: string
-  onClose: () => void
-}) {
-  const template = bookTemplates.find(t => t.id === templateId)
-  if (!template) return null
-
-  return (
-    <Modal open={true} onClose={onClose} title={`Aperçu: Assistant ${template.name}`}>
-      <div className="space-y-4">
-        <div className="flex items-center space-x-3">
-          <span className="text-2xl">{template.emoji}</span>
-          <div>
-            <h3 className="font-medium">{template.name}</h3>
-            <p className="text-sm text-gray-600">{template.description}</p>
-          </div>
-        </div>
-        
-        <div className="bg-gray-50 p-4 rounded-lg max-h-64 overflow-y-auto">
-          <p className="text-xs font-medium text-gray-700 mb-2">
-            📝 Message initial que l'assistant vous enverra :
-          </p>
-          <div className="text-sm text-gray-800 whitespace-pre-line">
-            {template.fullPrompt.substring(0, 500)}...
-          </div>
-        </div>
-        
-        <div className="text-center">
-          <Button onClick={onClose}>Fermer l'aperçu</Button>
-        </div>
-      </div>
-    </Modal>
   )
 }

@@ -1,10 +1,10 @@
-// src/app/api/books/route.ts
+// src/app/api/books/route.ts (RENOMMER le fichier routes.ts en route.ts)
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET() {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
@@ -18,18 +18,20 @@ export async function GET() {
       .order('updated_at', { ascending: false });
 
     if (error) {
+      console.error('Erreur récupération livres:', error);
       return NextResponse.json({ error: 'Erreur récupération livres' }, { status: 500 });
     }
 
     return NextResponse.json({ books: books || [] });
   } catch (error) {
+    console.error('Erreur interne:', error);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
@@ -58,11 +60,13 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
+      console.error('Erreur création livre:', error);
       return NextResponse.json({ error: 'Erreur création livre' }, { status: 500 });
     }
 
     return NextResponse.json({ book }, { status: 201 });
   } catch (error) {
+    console.error('Erreur interne:', error);
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 });
   }
 }
