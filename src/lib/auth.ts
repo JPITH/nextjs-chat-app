@@ -1,23 +1,50 @@
-'use server';
+// src/lib/auth.ts
+'use client';
 
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase';
 
-export async function signOut() {
-  const supabase = createServerComponentClient({ cookies });
-  const { error } = await supabase.auth.signOut();
+export async function signIn(email: string, password: string) {
+  const supabase = createClient();
+  
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
   if (error) {
     throw error;
   }
-  return { success: true };
+
+  return data;
 }
 
-export async function getSession() {
-  const supabase = createServerComponentClient({ cookies });
-  return await supabase.auth.getSession();
+export async function signUp(email: string, password: string, name?: string) {
+  const supabase = createClient();
+  
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        name: name || '',
+      },
+      emailRedirectTo: `${window.location.origin}/auth/callback`
+    },
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 }
 
-export async function getUser() {
-  const supabase = createServerComponentClient({ cookies });
-  return await supabase.auth.getUser();
+export async function signOut() {
+  const supabase = createClient();
+  
+  const { error } = await supabase.auth.signOut();
+  
+  if (error) {
+    throw error;
+  }
 }

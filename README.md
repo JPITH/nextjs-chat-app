@@ -1,5 +1,45 @@
 # 🚀 Roadmap ChatApp - Assistant IA pour création de livres
 
+## 🚀 Configuration requise
+
+### Variables d'environnement
+
+Créez un fichier `.env.local` à la racine du projet avec les variables suivantes :
+
+```env
+# Configuration Supabase (obligatoire)
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+
+# Sécurité (obligatoire)
+JWT_SECRET=generate-a-secure-secret-key-here
+JWT_EXPIRES_IN=7d
+
+# Configuration de l'application
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### Installation
+
+1. Cloner le dépôt
+2. Installer les dépendances :
+   ```bash
+   npm install
+   # ou
+   yarn install
+   ```
+3. Copier le fichier `.env.example` vers `.env.local` et le configurer
+4. Démarrer le serveur de développement :
+   ```bash
+   npm run dev
+   # ou
+   yarn dev
+   ```
+
+### Déploiement
+
+Le projet est prêt pour le déploiement sur Vercel, Netlify ou toute autre plateforme supportant Next.js.
+
 ## 🎯 Vision claire du produit
 
 **"Écrivez votre livre entier en conversant avec une IA spécialisée"**

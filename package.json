@@ -2,17 +2,12 @@
   "name": "nextjs-chat-app",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@10.12.1",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit",
-    "setup": "node scripts/setup.js",
-    "redis:start": "docker-compose up -d redis",
-    "redis:stop": "docker-compose stop redis",
-    "redis:logs": "docker-compose logs redis"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
@@ -40,17 +35,11 @@
     "eslint": "^9.29.0",
     "eslint-config-next": "^15.3.4",
     "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.10",
+    "tailwindcss": "^3.4.16",
     "typescript": "^5.8.3"
   },
-  "pnpm": {
-    "overrides": {
-      "@typescript-eslint/parser": "^8.34.1",
-      "@typescript-eslint/eslint-plugin": "^8.34.1"
-    }
-  },
   "engines": {
-    "node": ">=18.0.0",
-    "pnpm": ">=8.0.0"
-  }
+    "node": ">=18.0.0"
+  },
+  "packageManager": "pnpm@10.12.4+sha512.5ea8b0deed94ed68691c9bad4c955492705c5eeb8a87ef86bc62c74a26b037b08ff9570f108b2e4dbd1dd1a9186fea925e527f141c648e85af45631074680184"
 }
