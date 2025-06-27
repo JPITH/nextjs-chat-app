@@ -1,4 +1,4 @@
-// src/app/api/books/[bookId]/route.ts - Version corrigée
+// src/app/api/books/[bookId]/route.ts - Version corrigée pour appeler le webhook
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
@@ -81,6 +81,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         timestamp: new Date().toISOString(),
         userId: user.id,
         messageId: savedMessage.id,
+        // IMPORTANT: URL de callback pour que n8n sache où renvoyer la réponse
         callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/n8n`
       };
 
@@ -98,7 +99,39 @@ export async function POST(request: NextRequest, context: RouteContext) {
         
         if (webhookResponse.ok) {
           const responseData = await webhookResponse.text();
-          console.log('📡 Réponse n8n:', responseData);
+          console.log('📡 Réponse n8n brute:', responseData);
+          
+          // NOUVEAU: Traiter la réponse directe si n8n la renvoie immédiatement
+          try {
+            const parsedResponse = JSON.parse(responseData);
+            
+            // Si n8n renvoie directement la réponse IA
+            if (parsedResponse.response) {
+              console.log('🎯 Réponse IA directe détectée, sauvegarde immédiate...');
+              
+              // Sauvegarder immédiatement la réponse IA
+              const aiMessage = {
+                book_id: bookId,
+                title: 'Réponse Assistant',
+                content: parsedResponse.response.trim(),
+              };
+
+              const { data: savedAIMessage, error: aiError } = await supabase
+                .from('book_chat')
+                .insert(aiMessage)
+                .select()
+                .single();
+
+              if (aiError) {
+                console.error('❌ Erreur sauvegarde réponse IA directe:', aiError);
+              } else {
+                console.log('✅ Réponse IA sauvegardée directement:', savedAIMessage.id);
+              }
+            }
+          } catch (parseError) {
+            console.log('📡 Réponse n8n en texte brut (pas JSON):', responseData);
+          }
+          
         } else {
           console.error('❌ Erreur webhook n8n:', webhookResponse.statusText);
         }
@@ -116,12 +149,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 }
 
+// Autres méthodes GET et DELETE inchangées...
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { bookId } = await context.params;
     const supabase = await createClient();
     
-    // Vérifier l'utilisateur
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
@@ -155,7 +188,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    // Supprimer d'abord tous les messages du livre
     const { error: chatError } = await supabase
       .from('book_chat')
       .delete()
@@ -165,7 +197,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       console.error('Erreur suppression messages:', chatError);
     }
 
-    // Puis supprimer le livre
     const { error: bookError } = await supabase
       .from('books')
       .delete()
